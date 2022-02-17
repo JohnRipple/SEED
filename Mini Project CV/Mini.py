@@ -27,11 +27,11 @@ def resize(img):
     res = cv.resize(img, None, fx=0.5, fy=0.5, interpolation = cv.INTER_AREA)
     return res
 
-#Takes picture and filters out everything except yellow
+#Takes picture and filters out everything except green
 def filtercolor(img):
-    #H: 18   S: 255  V: 162 using displayColors.py
+    #H: 49	S: 255	V: 126 using displayColors.py
     #Multiple colors can be added to boundaries, only yellow is used
-    boundaries = [([18-10, 100, 100], [18+10, 255, 255])]
+    boundaries = [([71-10, 100, 100], [71+10, 255, 255])]
     #Convert img to hsv and resize it by half
     img = hsv(img)
     img = resize(img)
@@ -81,7 +81,7 @@ def findpos(img, found):
 def calibration(size):
     camera = PiCamera()
     # Set ISO to the desired value
-    camera.iso = 800
+    #camera.iso = 800
     camera.framerate = 24;
     camera.resolution = size
     
@@ -89,15 +89,15 @@ def calibration(size):
     sleep(0.1)
     
     # Fix the exposure, can't see bright things if not originally pointing at them
-    camera.shutter_speed = camera.exposure_speed
-    camera.exposure_mode = 'off'
+    #camera.shutter_speed = camera.exposure_speed
+    #camera.exposure_mode = 'off'
     
     # Sets awb to a specific value
     g = camera.awb_gains
-    print(g)
-    g=((399/256), (155/128))
+    g=((380/256), (155/128))
     camera.awb_mode = 'off'
     camera.awb_gains = g
+    
     return camera
 
 #Captures a video of only the yellow hexagon
@@ -108,6 +108,9 @@ def videoproc():
     found = True
     for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         frame = framein.array
+        #g = camera.awb_gains
+        #print(g)
+        
         
         #Sends the frame through the filter process to get only the yellow hexagon
         frame = filtercolor(frame)
