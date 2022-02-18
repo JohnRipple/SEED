@@ -29,9 +29,9 @@ def resize(img):
 
 #Takes picture and filters out everything except green
 def filtercolor(img):
-    #H: 49	S: 255	V: 126 using displayColors.py
+    #H: 108  S: 255  V: 126 using displayColors.py
     #Multiple colors can be added to boundaries, only yellow is used
-    boundaries = [([71-10, 100, 100], [71+10, 255, 255])]
+    boundaries = [([108-10, 50, 50], [108+10, 255, 255])]
     #Convert img to hsv and resize it by half
     img = hsv(img)
     img = resize(img)
