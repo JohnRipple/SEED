@@ -79,7 +79,8 @@ void find_vars(){
   double d_r = (right.theta - right.theta_last)*radius;
   double d_l = (left.theta - left.theta_last)*radius;
   
-  
+  Serial.println(left.theta); 
+ 
   right.theta_last = right.theta;
   left.theta_last = left.theta;
 
@@ -91,9 +92,9 @@ void find_vars(){
     double v_r = d_r /(double)(time_now - time_last)*1000; //dont forget time now is in ms, so multiply by 1000 to convert to /s
     double v_l = d_l /(double)(time_now - time_last)*1000; //Caluclates velocity of left and right based on prior postition and time
                                                                 //compared to current position and time
-    double b[] = {(double)time_now/1000, v_l, v_r};
-    int print_precision[] = {3,6,6};
-    tab_sep_print(b,print_precision, 3); //print it     
+    //double b[] = {(double)time_now/1000, v_l, v_r};
+    //int print_precision[] = {3,6,6};
+    //tab_sep_print(b,print_precision, 3); //print it     
                                                          
   }
   
