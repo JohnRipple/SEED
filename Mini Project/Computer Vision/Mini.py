@@ -31,7 +31,7 @@ def resize(img):
 def filtercolor(img):
     #H: 108  S: 255  V: 126 using displayColors.py
     #Multiple colors can be added to boundaries, only yellow is used
-    boundaries = [([108-10, 50, 50], [108+10, 255, 255])]
+    boundaries = [([108-10, 0, 0], [108+10, 255, 255])]
     #Convert img to hsv and resize it by half
     img = hsv(img)
     img = resize(img)
@@ -49,7 +49,7 @@ def filtercolor(img):
 #Cleans up an image using filtering and transformations
 def cleanimg(img):
     #Creates a 5x5 kernel of ones and uses it to Morph open the image
-    kernel = np.ones((10,10), np.uint8)
+    kernel = np.ones((5,5), np.uint8)
     clean = cv.morphologyEx(img, cv.MORPH_OPEN, kernel)
     #clean = cv.erode(clean,kernel,iterations = 3)
     return clean
@@ -69,7 +69,6 @@ def findpos(img, found):
             print("No Markers Found")
         return -1, -1, th
     largest_item = max(contours, key=cv.contourArea)
-    
     #largest item
     M = cv.moments(largest_item)
     if M["m00"] >  0: 
@@ -124,7 +123,7 @@ def videoproc():
             found = True
         #findangle(x, frame.shape[1]/2)
         findquad(x, y, frame.shape[1]/2, frame.shape[0]/2)
-        
+
         cv.imshow("Frame", frame)
         if cv.waitKey(1) & 0xFF == 27:
             break
