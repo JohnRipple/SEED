@@ -11,7 +11,7 @@
  * 
  */
  
-int N_in_rotation = 20; //Clicks in an encoder for full circle
+int N_in_rotation = 64; //Clicks in an encoder for full circle
 double radius = 0.05; //Wheel radius
 double b = 0.1; //robot width
 double x = 0; //position
