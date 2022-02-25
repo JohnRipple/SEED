@@ -1,3 +1,6 @@
+import smbus
+import board
+import adafruit_character_lcd.character_lcd_rgb_i2c as character_lcd
 import cv2 as cv
 import numpy as np
 import picamera
@@ -5,6 +8,24 @@ from picamera import PiCamera
 from time import sleep
 from statistics import mean
 from picamera.array import PiRGBArray
+
+#setting address/bus
+bus = smbus.SMBus(1)
+address = 0x04
+
+#initialize I2C bus
+i2c = board.I2C()
+
+#lcd settings
+lcd_columns = 16
+lcd_rows = 2
+lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
+lcd.clear()
+
+# function that sends number to arduino
+def writeNumber(value):
+    bus.write_byte(address,value)
+    return -1
 
 #Turns an image hsv to bgr
 def bgr(image):
@@ -105,6 +126,8 @@ def videoproc():
     camera = calibration(size)
     rawCapture = PiRGBArray(camera, size)
     found = True
+    prevQuad = 0
+    quadrant = 0
     for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         frame = framein.array
         #g = camera.awb_gains
@@ -122,7 +145,7 @@ def videoproc():
         else:
             found = True
         #findangle(x, frame.shape[1]/2)
-        findquad(x, y, frame.shape[1]/2, frame.shape[0]/2)
+        findquad(x, y, frame.shape[1]/2, frame.shape[0]/2,prevQuad,quadrant)
 
         cv.imshow("Frame", frame)
         if cv.waitKey(1) & 0xFF == 27:
@@ -139,17 +162,26 @@ def findangle(x, center):
         phi = fov/2*((x-center)/center)
         print(phi)
 
-def findquad(x, y, xcent, ycent):
+def findquad(x, y, xcent, ycent,prevQuad,quadrant):
     msg = ""
     if x > xcent and y > ycent:
         msg = "SE"
+        quadrant = 2
     elif x > xcent and y < ycent:
         msg = "NE"
+        quadrant = 1
     elif x < xcent and y > ycent:
         msg = "SW"
+        quadrant = 3
     elif x < xcent and y < ycent:
         msg = "NW"
+        quadrant = 4
     if x != -1 and y != -1:
-        print(msg)
+        #print(msg)
+        if prevQuad != quadrant:
+            print(quadrant)
+            writeNumber(quadrant)
+            lcd.message = "Direction: " + msg + "\nQuadrant: " + str(quadrant)
+            prevQuad = quadrant
 
 videoproc()
