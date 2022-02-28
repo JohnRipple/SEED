@@ -9,13 +9,6 @@ import picamera
 import time
 
 clr = False
-def end():
-    if input("Save the picture? (y/n): ") == "y":
-        userInput = input("Enter a filename: ")
-        cv.imwrite(userInput, image)
-    cv.destroyAllWindows()
-    exit(0)
-    
 
 def getColor(event, x, y, flags, param):
     if event == cv.EVENT_LBUTTONDOWN:
@@ -41,7 +34,7 @@ def hsv(image):
 
 #Resizes the image to half its size
 def resize(img):
-    res = cv.resize(img, None, fx=0.5, fy=0.5, interpolation = cv.INTER_AREA)
+    res = cv.resize(img, None, fx=0.55, fy=0.5, interpolation = cv.INTER_AREA)
     return res
 
 
@@ -74,7 +67,12 @@ while(1):
         #Checks what the keyboard presses are while in the window
         k = cv.waitKey(1) & 0xFF
         if k == ord('q'):
-            end()
+            cv.destroyAllWindows()
+            exit(0)
+        elif k == ord('s'):
+            userInput = input("Enter a filename: ")
+            cv.imwrite(userInput, image)
+            break
         elif k == ord('m'):
             clr = not clr
         elif k == ord('r'):
