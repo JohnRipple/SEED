@@ -42,7 +42,6 @@ for fname in images:
     else:
         print('Not enough corners on ' + fname)
 
-
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
 img = cv.imread('Calib_Pics/calib_test2.jpg')
 h,  w = img.shape[:2]
@@ -50,6 +49,7 @@ newcameramtx, roi=cv.getOptimalNewCameraMatrix(mtx,dist,(w,h),1,(w,h))
 # undistort
 dst = cv.undistort(img, mtx, dist, None, newcameramtx)
  
+np.savez('camera_distort_matrices', mtx=mtx, dist=dist, newcameramtx=newcameramtx)
 # crop the image
 x,y,w,h = roi
 dst = dst[y:y+h, x:x+w]
