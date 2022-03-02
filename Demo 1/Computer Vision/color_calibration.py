@@ -52,6 +52,7 @@ camera.awb_gains = g
 
 while(1):
     #Creates a window that can be used with a mouse
+    camera.start_preview(alpha=200)
     input("Ready to take picture? (enter): ")
     print("q quits, r retakes picture, m changes colorspace")
     #Set up cv object and capture image
@@ -62,6 +63,7 @@ while(1):
     image = resize(image)
     cv.namedWindow('image')
     cv.setMouseCallback('image', getColor)
+    camera.stop_preview()
     while(1):
         cv.imshow('image', image)
         #Checks what the keyboard presses are while in the window
@@ -71,6 +73,7 @@ while(1):
             exit(0)
         elif k == ord('s'):
             userInput = input("Enter a filename: ")
+            userInput = userInput + ".jpg"
             cv.imwrite(userInput, image)
             break
         elif k == ord('m'):

@@ -7,8 +7,8 @@ criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 #If these values are not the number of corners on the board then it will not work
 #Where black meets white squares across and down
-squarex = 7
-squarey = 10
+squarex = 6
+squarey = 8
 
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
 objp = np.zeros((squarex*squarey,3), np.float32)
@@ -43,7 +43,7 @@ for fname in images:
         print('Not enough corners on ' + fname)
 
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
-img = cv.imread('Calib_Pics/calib_test2.jpg')
+img = cv.imread('Calib_Pics/2.jpg')
 h,  w = img.shape[:2]
 newcameramtx, roi=cv.getOptimalNewCameraMatrix(mtx,dist,(w,h),1,(w,h))
 # undistort
