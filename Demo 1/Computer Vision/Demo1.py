@@ -6,9 +6,9 @@ import numpy as np
 import picamera
 from picamera import PiCamera
 from time import sleep
-from statistics import mean
 from picamera.array import PiRGBArray
 
+'''
 #setting address/bus
 bus = smbus.SMBus(1)
 address = 0x04
@@ -26,6 +26,8 @@ lcd.clear()
 def writeNumber(value):
     bus.write_byte(address,value)
     return -1
+'''
+
 
 #Turns an image hsv to bgr
 def bgr(image):
@@ -55,7 +57,7 @@ def filtercolor(img):
     boundaries = [([108-10, 0, 0], [108+10, 255, 255])]
     #Convert img to hsv and resize it by half
     img = hsv(img)
-    img = resize(img)
+    #img = resize(img)
     #Iterate through boundaries
     for (lower,upper) in boundaries:
         #create NumPy arrays from boundaries
@@ -108,20 +110,15 @@ def calibration(size):
     # Wait for the automatic gain control to settle
     sleep(0.1)
     
-    # Fix the exposure, can't see bright things if not originally pointing at them
-    #camera.shutter_speed = camera.exposure_speed
-    #camera.exposure_mode = 'off'
-    
     # Sets awb to a specific value
-    g = camera.awb_gains
     g=((380/256), (155/128))
     camera.awb_mode = 'off'
     camera.awb_gains = g
-    
     return camera
 
 #Captures a video of only the yellow hexagon
 def videoproc():
+    data = np.load('camera_distort_matrices.npz')
     size = (640, 480)
     camera = calibration(size)
     rawCapture = PiRGBArray(camera, size)
@@ -130,19 +127,21 @@ def videoproc():
     quadrant = 0
     for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         frame = framein.array
+        
+        #Uses previously calculated values to undistort image
+        frame = cv.undistort(frame, data['mtx'], data['dist'], None, data['newcameramtx'])
 
         #Sends the frame through the filter process to get only the yellow hexagon
         frame = filtercolor(frame)
         frame = cleanimg(frame)
         
-        #Finds the center of the hexagon in the image
+        #Finds the center of the largest object left in the image
         x,y, frame = findpos(frame, found)
         if x == -1:
             found = False
         else:
             found = True
-        #findangle(x, frame.shape[1]/2)
-        findquad(x, y, frame.shape[1]/2, frame.shape[0]/2,prevQuad,quadrant)
+        findangle(x, frame.shape[1]/2)
 
         cv.imshow("Frame", frame)
         if cv.waitKey(1) & 0xFF == 27:
@@ -154,31 +153,16 @@ def videoproc():
 def findangle(x, center):
     #Pi camera FOV is 53.5 deg Horizontal 41.41 deg Vertical, 67 deg diagonal
     fov = 53.5
-    if x is not -1:
+    if x != -1:
         #Find the angle relative to the center of the image to rotate the camera
-        phi = fov/2*((x-center)/center)
-        print(phi)
+        phi = round(fov/2*((center-x)/center), 4)
+        global phiold
+        if phi != phiold:
+            phiold = phi
+            #writeNumber(phi)
+            #lcd.message = "Angle: " + str(phi)
+            print(phi)
 
-def findquad(x, y, xcent, ycent,prevQuad,quadrant):
-    msg = ""
-    if x > xcent and y > ycent:
-        msg = "SE"
-        quadrant = 2
-    elif x > xcent and y < ycent:
-        msg = "NE"
-        quadrant = 1
-    elif x < xcent and y > ycent:
-        msg = "SW"
-        quadrant = 3
-    elif x < xcent and y < ycent:
-        msg = "NW"
-        quadrant = 4
-    if x != -1 and y != -1:
-        #print(msg)
-        if prevQuad != quadrant:
-            print(quadrant)
-            writeNumber(quadrant)
-            lcd.message = "Direction: " + msg + "\nQuadrant: " + str(quadrant)
-            prevQuad = quadrant
 
+phiold = 100.00
 videoproc()
