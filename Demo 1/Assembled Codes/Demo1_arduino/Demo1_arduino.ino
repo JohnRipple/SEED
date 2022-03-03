@@ -28,7 +28,9 @@ double phi = 0; //in radians
 
 struct wheel :  Encoder{
   wheel(int x, int y) : Encoder(x,y){};  //constructor
- 
+  double theta(){
+    return read() * enc_to_rad;
+  }
   long theta_last = 0;
 };
 
