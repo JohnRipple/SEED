@@ -11,8 +11,11 @@
  * connect + on encoder to the 5V on the arduino
  * 
  */
-#include <Encoder.h>
+ #include <Wire.h>
+ #include <Encoder.h>
+ #define SLAVE_ADDRESS 0x04
 
+// ============== Localization Initialization ==============
 const double N_per_Rotation = 3200; // in ticks
 const double radius = 0.05; //in meters
 const double robot_width = 0.1; //in meters (Needs to be measured from wheel to wheel)
@@ -31,18 +34,25 @@ struct wheel :  Encoder{
 
 wheel left(2,5);
 wheel right(3,6);
+// ============== END Localization Initialization ==============
+
+
+// ============== Motor Control Initialization ==============
+
+// ============= END Motor Control Initialization =============
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   
 }
 
 void loop() {
   update_position();
 
+  
 }
 
-void update_position(){
+void update_position(){ //Updates position for localization 
   int right_theta = right.read(); //sets a constant position throughout function
   int left_theta = left.read();
   double d_r = (right_theta - right.theta_last) * enc_to_rad * radius; //displacement of the wheels in meters
