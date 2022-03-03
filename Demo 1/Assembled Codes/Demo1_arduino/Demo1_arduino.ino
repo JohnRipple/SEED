@@ -31,6 +31,12 @@ struct wheel :  Encoder{
   double theta(){
     return read() * enc_to_rad;
   }
+  double displacement(){ //returns the displacement made by wheel since it was last called
+    int temp = read();
+    double tbr = (temp - theta_last) * enc_to_rad * radius;
+    theta_last = temp;
+    return tbr;
+  }
   long theta_last = 0;
 };
 
@@ -55,13 +61,9 @@ void loop() {
 }
 
 void update_position(){ //Updates position for localization 
-  int right_theta = right.read(); //sets a constant position throughout function
-  int left_theta = left.read();
-  double d_r = (right_theta - right.theta_last) * enc_to_rad * radius; //displacement of the wheels in meters
-  double d_l = (left_theta - left.theta_last) * enc_to_rad * radius;
-  right.theta_last = right_theta; //updates the previous postition
-  left.theta_last = left_theta;
-
+  double d_r = right.displacement(); //sets a constant position throughout function
+  double d_l = left.displacement();
+  
   x = x + cos(phi)*(d_r + d_l) / 2; //updates x postion
   y = y + sin(phi)*(d_r + d_l) / 2; //updates y position
   r = sqrt(x*x+y*y); // upadates r / distance traveled
