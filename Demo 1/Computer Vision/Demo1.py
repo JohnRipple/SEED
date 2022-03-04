@@ -53,7 +53,7 @@ def resize(img):
 #Takes picture and filters out everything except green
 def filtercolor(img):
     #H: 108  S: 255  V: 126 using displayColors.py
-    #Multiple colors can be added to boundaries, only yellow is used
+    #Multiple colors can be added to boundaries, only one is used
     boundaries = [([108-10, 0, 0], [108+10, 255, 255])]
     #Convert img to hsv and resize it by half
     img = hsv(img)
@@ -101,19 +101,19 @@ def findpos(img, found):
     
 #Sets the awb to off
 def calibration(size):
-    camera = PiCamera()
-    # Set ISO to the desired value
-    #camera.iso = 800
-    camera.framerate = 24;
+    camera = picamera.PiCamera()
     camera.resolution = size
-    
+    camera.framerate = 24
     # Wait for the automatic gain control to settle
-    sleep(0.1)
-    
-    # Sets awb to a specific value
-    g=((380/256), (155/128))
-    camera.awb_mode = 'off'
-    camera.awb_gains = g
+    sleep(2)
+    # Now fix the values
+    camera.shutter_speed = camera.exposure_speed
+    camera.exposure_mode = 'off'
+
+    camera.awb_mode = "off"
+    camera.awb_gains = (343/256, 101/64)
+    #g=((380/256), (155/128))
+
     return camera
 
 #Captures a video of only the yellow hexagon
@@ -130,9 +130,11 @@ def videoproc():
         
         #Uses previously calculated values to undistort image
         frame = cv.undistort(frame, data['mtx'], data['dist'], None, data['newcameramtx'])
-
+        
         #Sends the frame through the filter process to get only the yellow hexagon
+        
         frame = filtercolor(frame)
+        
         frame = cleanimg(frame)
         
         #Finds the center of the largest object left in the image
@@ -142,7 +144,7 @@ def videoproc():
         else:
             found = True
         findangle(x, frame.shape[1]/2)
-
+        
         cv.imshow("Frame", frame)
         if cv.waitKey(1) & 0xFF == 27:
             break
