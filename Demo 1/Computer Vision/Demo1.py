@@ -54,7 +54,8 @@ def resize(img):
 def filtercolor(img):
     #H: 108  S: 255  V: 126 using displayColors.py
     #Multiple colors can be added to boundaries, only one is used
-    boundaries = [([108-10, 0, 0], [108+10, 255, 255])]
+    boundaries = [([119-10, 0, 0], [119+10, 255, 255])]
+    mask = np.zeros((480, 640), dtype="uint8")
     #Convert img to hsv and resize it by half
     img = hsv(img)
     #img = resize(img)
@@ -65,9 +66,10 @@ def filtercolor(img):
         upper = np.array(upper, dtype="uint8")
         
         #find colors within the specified boundaries and apply mask
-        mask = cv.inRange(img, lower, upper)
-        output = cv.bitwise_and(img, img, mask = mask)
-        return output
+        mask = mask | cv.inRange(img, lower, upper)
+        
+    output = cv.bitwise_and(img, img, mask = mask)
+    return output
 
 #Cleans up an image using filtering and transformations
 def cleanimg(img):
@@ -112,8 +114,6 @@ def calibration(size):
 
     camera.awb_mode = "off"
     camera.awb_gains = (343/256, 101/64)
-    #g=((380/256), (155/128))
-
     return camera
 
 #Captures a video of only the yellow hexagon
@@ -132,9 +132,7 @@ def videoproc():
         frame = cv.undistort(frame, data['mtx'], data['dist'], None, data['newcameramtx'])
         
         #Sends the frame through the filter process to get only the yellow hexagon
-        
         frame = filtercolor(frame)
-        
         frame = cleanimg(frame)
         
         #Finds the center of the largest object left in the image
