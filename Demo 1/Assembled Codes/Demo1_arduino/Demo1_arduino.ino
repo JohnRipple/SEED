@@ -157,7 +157,7 @@ void loop() {
       else{ 
         PWM_value = abs(PWM_value); 
       }
-
+      //Something should probably be scaled for the minimum PWM needed to move the motor
       //WRITES THE SPEED AND DIRECTIONS TO THE MOTORS
       digitalWrite(M1Dir, DIRECTIONM1);
       analogWrite(M1Speed, PWM_value);//PWM_value
