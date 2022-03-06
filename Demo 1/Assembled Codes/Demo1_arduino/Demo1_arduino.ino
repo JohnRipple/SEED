@@ -27,21 +27,26 @@ double r = 0; //in meters
 double phi = 0; //in radians
 
 struct wheel :  Encoder{
-  wheel(int x, int y) : Encoder(x,y){};  //constructor
+  wheel(int x, int y, int s) : Encoder(x,y){side = s;};  //constructor
+  long read(){
+    return Encoder::read() * side;
+  }
   double theta(){
     return read() * enc_to_rad;
   }
+  
   double displacement(){ //returns the displacement made by wheel since it was last called
     int temp = read();
     double tbr = (temp - theta_last) * enc_to_rad * radius;
     theta_last = temp;
     return tbr;
   }
+  int side = 1;
   long theta_last = 0;
 };
 
-wheel left(2,5);
-wheel right(3,6);
+wheel left(2,5,-1);
+wheel right(3,6,1);
 
 // ============== END Localization Initialization ==============
 
@@ -161,11 +166,50 @@ void loop() {
       Serial.println(PWM_value);
       
       //CHECKS TO SEE IF IT CAN GO FORWARD
-      if(error < 2){
+      if(error < 2  && !STRAIGHT){
         STRAIGHT = true;
         ONCE = 0;  
+        Serial.print("Done Turning");
+        Serial.print('\n');
+      }else if(STRAIGHT && error > 3.5){
+        STRAIGHT = false;
+        Serial.print("Turning again");
+        Serial.print('\n');
       }
   
+    }
+  if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired
+        if(label %12 == 0){
+        Serial.print('\n');
+        Serial.print("phi");
+        Serial.print('\t');
+        Serial.print("Error");
+        Serial.print('\t');
+        Serial.print("Dis");
+        Serial.print('\t');
+        Serial.print("desDis");
+        Serial.print('\t');    
+        Serial.print("x");
+        Serial.print('\t'); 
+        Serial.print("y");
+        Serial.print('\t'); 
+        Serial.print("PWM");
+        Serial.print('\n');       
+        }
+        Serial.print(phi* 180/PI);
+        Serial.print('\t');
+        Serial.print(error *180/PI);
+        Serial.print('\t');
+        Serial.print(r);
+        Serial.print('\t');
+        Serial.print(desDis);
+        Serial.print('\t');
+        Serial.print(x);
+        Serial.print('\t');
+        Serial.print(y);
+        Serial.print('\t');
+        Serial.println(PWM_value);
+        label ++;
     }
 }
   
@@ -178,5 +222,5 @@ void update_position(){ //Updates position for localization
   x = x + cos(phi)*(d_r + d_l) / 2; //updates x postion
   y = y + sin(phi)*(d_r + d_l) / 2; //updates y position
   r = meterToFeet * sqrt(x*x+y*y); // upadates r / distance traveled
-  phi = phi + (d_l - d_r) / robot_width; //updates orientation
+  phi = (right.read() - left.read()) * enc_to_rad * radius / robot_width; //updates orientation
 }
