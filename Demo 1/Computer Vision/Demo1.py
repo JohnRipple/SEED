@@ -54,11 +54,12 @@ def resize(img):
 def filtercolor(img):
     #H: 108  S: 255  V: 126 using displayColors.py
     #Multiple colors can be added to boundaries, only one is used
-    boundaries = [([119-10, 0, 0], [119+10, 255, 255])]
-    mask = np.zeros((480, 640), dtype="uint8")
+    bound = 4
+    boundaries = [([108-bound, 0, 0], [108+bound, 255, 255])]
     #Convert img to hsv and resize it by half
     img = hsv(img)
-    #img = resize(img)
+    img = resize(img)
+    mask = np.zeros((img.shape[0], img.shape[1]), dtype="uint8")
     #Iterate through boundaries
     for (lower,upper) in boundaries:
         #create NumPy arrays from boundaries
@@ -83,12 +84,14 @@ def cleanimg(img):
 def findpos(img, found):
     #Convert image to grayscale and then threshold it
     gray = gry(img)
+    gray = cv.GaussianBlur(gray, (5,5),0)
     ret, th = cv.threshold(gray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
-    th = cv.Canny(th, 50, 100)
+    th = cv.Canny(th, 100, 200)
     #Find the positions of all non zero values in the image
     x = -1
     y = -1
     _, contours, _ = cv.findContours(th.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    
     if len(contours) < 1:
         if found == True:
             print("No Markers Found")
@@ -142,7 +145,7 @@ def videoproc():
         else:
             found = True
         findangle(x, frame.shape[1]/2)
-        
+
         cv.imshow("Frame", frame)
         if cv.waitKey(1) & 0xFF == 27:
             break
@@ -163,6 +166,6 @@ def findangle(x, center):
             #lcd.message = "Angle: " + str(phi)
             print(phi)
 
-
+cv.setUseOptimized(True)
 phiold = 100.00
 videoproc()
