@@ -28,37 +28,15 @@ def writeNumber(value):
     return -1
 '''
 
-
-#Turns an image hsv to bgr
-def bgr(image):
-    img = cv.cvtColor(image, cv.COLOR_HSV2BGR)
-    return img
-
-#Turns an image HSV
-def hsv(image):
-    img = cv.cvtColor(image, cv.COLOR_BGR2HSV)
-    return img
-
-#Turns an image HSV to Grayscale
-def gry(image):
-    image = bgr(image)
-    img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-    return img
-
-#Resizes the image to half its size
-def resize(img):
-    res = cv.resize(img, None, fx=0.5, fy=0.5, interpolation = cv.INTER_AREA)
-    return res
-
 #Takes picture and filters out everything except green
 def filtercolor(img):
     #H: 108  S: 255  V: 126 using displayColors.py
     #Multiple colors can be added to boundaries, only one is used
     bound = 10
     boundaries = [([108-bound, 0, 0], [108+bound, 255, 255])]
+
     #Convert img to hsv and resize it by half
-    img = hsv(img)
-    img = resize(img)
+    img = cv.cvtColor(image, cv.COLOR_BGR2HSV)
     mask = np.zeros((img.shape[0], img.shape[1]), dtype="uint8")
     #Iterate through boundaries
     for (lower,upper) in boundaries:
@@ -72,18 +50,11 @@ def filtercolor(img):
     output = cv.bitwise_and(img, img, mask = mask)
     return output
 
-#Cleans up an image using filtering and transformations
-def cleanimg(img):
-    #Creates a 5x5 kernel of ones and uses it to Morph open the image
-    kernel = np.ones((5,5), np.uint8)
-    clean = cv.morphologyEx(img, cv.MORPH_OPEN, kernel)
-    #clean = cv.erode(clean,kernel,iterations = 3)
-    return clean
-
 #Determines location of object in image
 def findpos(img, found):
     #Convert image to grayscale and then threshold it
-    gray = gry(img)
+    gray = cv.cvtColor(img, cv.COLOR_HSV2BGR)
+    gray = cv.cvtColor(gray, cv.COLOR_BGR2GRAY)
     gray = cv.GaussianBlur(gray, (5,5),0)
     ret, th = cv.threshold(gray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
     th = cv.Canny(th, 100, 200)
@@ -108,7 +79,11 @@ def findpos(img, found):
 def videoproc():
     data = np.load('camera_distort_matrices.npz')
     cap = cv.VideoCapture(0)
+    #Set width and height
+    cap.set(3, 320)
+    cap.set(4, 240)
     found = True
+    kernel = np.ones((5,5), np.uint8)
     while True:
         ret,frame= cap.read()
         
@@ -117,7 +92,7 @@ def videoproc():
         
         #Sends the frame through the filter process to get only the yellow hexagon
         frame = filtercolor(frame)
-        frame = cleanimg(frame)
+        frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel)
         
         #Finds the center of the largest object left in the image
         x,y, frame = findpos(frame, found)
