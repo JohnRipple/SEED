@@ -36,7 +36,7 @@ def filtercolor(img):
     boundaries = [([108-bound, 0, 0], [108+bound, 255, 255])]
 
     #Convert img to hsv and resize it by half
-    img = cv.cvtColor(image, cv.COLOR_BGR2HSV)
+    img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     mask = np.zeros((img.shape[0], img.shape[1]), dtype="uint8")
     #Iterate through boundaries
     for (lower,upper) in boundaries:
@@ -75,40 +75,6 @@ def findpos(img, found):
         y = int(M['m01']/M['m00'])
     return x,y, th
     
-#Captures a video of only the yellow hexagon
-def videoproc():
-    data = np.load('camera_distort_matrices.npz')
-    cap = cv.VideoCapture(0)
-    #Set width and height
-    cap.set(3, 320)
-    cap.set(4, 240)
-    found = True
-    kernel = np.ones((5,5), np.uint8)
-    while True:
-        ret,frame= cap.read()
-        
-        #Uses previously calculated values to undistort image
-        frame = cv.undistort(frame, data['mtx'], data['dist'], None, data['newcameramtx'])
-        
-        #Sends the frame through the filter process to get only the yellow hexagon
-        frame = filtercolor(frame)
-        frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel)
-        
-        #Finds the center of the largest object left in the image
-        x,y, frame = findpos(frame, found)
-        if x == -1:
-            found = False
-        else:
-            found = True
-        findangle(x, frame.shape[1]/2)
-
-        cv.imshow("Frame", frame)
-        if cv.waitKey(1) & 0xFF == 27:
-            break
-        
-    cap.release()
-    cv.destroyAllWindows()
-
 def findangle(x, center):
     #Pi camera FOV is 53.5 deg Horizontal 41.41 deg Vertical, 67 deg diagonal
     fov = 53.5
@@ -124,4 +90,35 @@ def findangle(x, center):
 
 cv.setUseOptimized(True)
 phiold = 100.00
-videoproc()
+
+data = np.load('camera_distort_matrices.npz')
+cap = cv.VideoCapture(0)
+#Set width and height
+cap.set(3, 320)
+cap.set(4, 240)
+found = True
+kernel = np.ones((5,5), np.uint8)
+while True:
+    ret,frame= cap.read()
+    
+    #Uses previously calculated values to undistort image
+    frame = cv.undistort(frame, data['mtx'], data['dist'], None, data['newcameramtx'])
+    
+    #Sends the frame through the filter process to get only the yellow hexagon
+    frame = filtercolor(frame)
+    frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel)
+    
+    #Finds the center of the largest object left in the image
+    x,y, frame = findpos(frame, found)
+    if x == -1:
+        found = False
+    else:
+        found = True
+    findangle(x, frame.shape[1]/2)
+    cv.imshow("Frame", frame)
+    if cv.waitKey(1) & 0xFF == 27:
+        break
+    
+cap.release()
+cv.destroyAllWindows()
+
