@@ -1,7 +1,7 @@
-/* Author: Andrew Samson 3/02/2022
+/* Author: Michael Klima 3/08/2022
  *  
  * Description: This code is used to keep track of the position and orientation (radians off of x-axis)
- * of the robot relative to its starting point (0,0)
+ * of the robot relative to its starting point (0,0) It also should drive the motor.
  * 
  * Hardware: 
  * 
@@ -59,22 +59,22 @@ int M1Dir = 7;
 int M2Dir = 8;
 int DIRECTIONM1 = HIGH;
 int DIRECTIONM2 = HIGH;
-bool STRAIGHT = false;
+//bool STRAIGHT = false;
 
 
 
 int ONCE = 0;
-double voltage = 0;
-double presentVoltage = 8.0; //WHYYYYYYYYYYYYYYYYYYYYYYY
+//double voltage = 0;
+//double presentVoltage = 8.0; //WHYYYYYYYYYYYYYYYYYYYYYYY
 int PWM_value_M1 = 0;
 int PWM_value_M2 = 0;
-double error = 0;
+// double error = 0;
 double errorDis = 0;
 double errorPhi = 0;
 double curDis = 0.0;
 //IN FEET
-double circum = PI*radius*2;
-double perClick = circum /3200;
+//double circum = PI*radius*2;
+//double perClick = circum /3200;
 double lastPT = 0.0;
 double lastPO = 0.0;
 double angVelOne = 0.0;
