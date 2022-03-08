@@ -47,6 +47,7 @@ camera.framerate = 24
 # Wait for the automatic gain control to settle
 time.sleep(2)
 # Now fix the values
+
 camera.shutter_speed = camera.exposure_speed
 camera.exposure_mode = 'off'
 

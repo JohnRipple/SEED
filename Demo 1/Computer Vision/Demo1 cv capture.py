@@ -28,53 +28,6 @@ def writeNumber(value):
     return -1
 '''
 
-#Takes picture and filters out everything except green
-def filtercolor(img):
-    #H: 108  S: 255  V: 126 using displayColors.py
-    #Multiple colors can be added to boundaries, only one is used
-    bound = 10
-    boundaries = [([108-bound, 0, 0], [108+bound, 255, 255])]
-
-    #Convert img to hsv and resize it by half
-    img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-    mask = np.zeros((img.shape[0], img.shape[1]), dtype="uint8")
-    #Iterate through boundaries
-    for (lower,upper) in boundaries:
-        #create NumPy arrays from boundaries
-        lower = np.array(lower, dtype="uint8")
-        upper = np.array(upper, dtype="uint8")
-        
-        #find colors within the specified boundaries and apply mask
-        mask = mask | cv.inRange(img, lower, upper)
-        
-    output = cv.bitwise_and(img, img, mask = mask)
-    return output
-
-#Determines location of object in image
-def findpos(img, found):
-    #Convert image to grayscale and then threshold it
-    gray = cv.cvtColor(img, cv.COLOR_HSV2BGR)
-    gray = cv.cvtColor(gray, cv.COLOR_BGR2GRAY)
-    gray = cv.GaussianBlur(gray, (5,5),0)
-    ret, th = cv.threshold(gray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
-    th = cv.Canny(th, 100, 200)
-    #Find the positions of all non zero values in the image
-    x = -1
-    y = -1
-    _, contours, _ = cv.findContours(th.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-    
-    if len(contours) < 1:
-        if found == True:
-            print("No Markers Found")
-        return -1, -1, th
-    largest_item = max(contours, key=cv.contourArea)
-    #largest item
-    M = cv.moments(largest_item)
-    if M["m00"] >  0: 
-        x = int(M['m10']/M['m00'])
-        y = int(M['m01']/M['m00'])
-    return x,y, th
-    
 def findangle(x, center):
     #Pi camera FOV is 53.5 deg Horizontal 41.41 deg Vertical, 67 deg diagonal
     fov = 53.5
@@ -86,7 +39,7 @@ def findangle(x, center):
             phiold = phi
             #writeNumber(phi)
             #lcd.message = "Angle: " + str(phi)
-            print(phi)
+            #print(phi)
 
 cv.setUseOptimized(True)
 phiold = 100.00
@@ -105,11 +58,50 @@ while True:
     frame = cv.undistort(frame, data['mtx'], data['dist'], None, data['newcameramtx'])
     
     #Sends the frame through the filter process to get only the yellow hexagon
-    frame = filtercolor(frame)
+    #H: 108  S: 255  V: 126 using displayColors.py
+    #Multiple colors can be added to boundaries, only one is used
+    bound = 10
+    boundaries = [([108-bound, 0, 0], [108+bound, 255, 255])]
+
+    #Convert img to hsv and resize it by half
+    frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+    mask = np.zeros((frame.shape[0], frame.shape[1]), dtype="uint8")
+    #Iterate through boundaries
+    for (lower,upper) in boundaries:
+        #create NumPy arrays from boundaries
+        lower = np.array(lower, dtype="uint8")
+        upper = np.array(upper, dtype="uint8")
+        
+        #find colors within the specified boundaries and apply mask
+        mask = mask | cv.inRange(frame, lower, upper)
+        
+    frame = cv.bitwise_and(frame, frame, mask = mask)
+    
     frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel)
     
     #Finds the center of the largest object left in the image
-    x,y, frame = findpos(frame, found)
+    #Convert image to grayscale and then threshold it
+    gray = cv.cvtColor(frame, cv.COLOR_HSV2BGR)
+    gray = cv.cvtColor(gray, cv.COLOR_BGR2GRAY)
+    gray = cv.GaussianBlur(gray, (5,5),0)
+    ret, th = cv.threshold(gray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
+    frame = cv.Canny(th, 100, 200)
+    #Find the positions of all non zero values in the image
+    x = -1
+    y = -1
+    _, contours, _ = cv.findContours(frame.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    
+    if len(contours) < 1:
+        if found == True:
+            print("No Markers Found")
+    else: 
+        largest_item = max(contours, key=cv.contourArea)
+        #largest item
+        M = cv.moments(largest_item)
+        if M["m00"] >  0: 
+            x = int(M['m10']/M['m00'])
+            y = int(M['m01']/M['m00'])
+            
     if x == -1:
         found = False
     else:
