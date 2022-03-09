@@ -12,6 +12,7 @@ from picamera.array import PiRGBArray
 #setting address/bus
 bus = smbus.SMBus(1)
 address = 0x04
+'''
 
 #initialize I2C bus
 i2c = board.I2C()
@@ -22,6 +23,7 @@ lcd_rows = 2
 lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
 lcd.clear()
 
+'''
 # function that sends number to arduino
 def writeNumber(value):
     bus.write_byte(address,value)
@@ -38,8 +40,8 @@ def findangle(x, center):
         if phi != phiold:
             phiold = phi
             #writeNumber(phi)
-            #lcd.message = "Angle: " + str(phi)
-            #print(phi)
+            lcd.message = "Angle: " + str(phi)
+            print(phi)
 
 cv.setUseOptimized(True)
 phiold = 100.00
@@ -60,8 +62,8 @@ while True:
     #Sends the frame through the filter process to get only the yellow hexagon
     #H: 108  S: 255  V: 126 using displayColors.py
     #Multiple colors can be added to boundaries, only one is used
-    bound = 10
-    boundaries = [([108-bound, 0, 0], [108+bound, 255, 255])]
+    bound = 7
+    boundaries = [([101-bound, 0, 0], [101+bound, 255, 255])]
 
     #Convert img to hsv and resize it by half
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)

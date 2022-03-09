@@ -39,7 +39,7 @@ def findangle(x, center):
             phiold = phi
             #writeNumber(phi)
             #lcd.message = "Angle: " + str(phi)
-            #print(phi)
+            print(phi)
 
 cv.setUseOptimized(True)
 phiold = 100.00

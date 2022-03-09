@@ -41,7 +41,7 @@ def resize(img):
 
 #Sets up camera
 camera = picamera.PiCamera()
-size = (640, 480)
+size = (320, 240)
 camera.resolution = size
 camera.framerate = 24
 # Wait for the automatic gain control to settle
