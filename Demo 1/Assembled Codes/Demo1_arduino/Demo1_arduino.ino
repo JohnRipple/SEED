@@ -2,25 +2,28 @@
  *  
  * Description: This code is used to keep track of the position and orientation (radians off of x-axis)
  * of the robot relative to its starting point (0,0)
- * 
- * Hardware: 
- * 
+ *
+ * Hardware:
+ *
  * connect the clk on the encoder to pins 2 and 3 (interrupt pins)
  * connect the dt on the encoder to pins 5 and 6
  * connect GND on the encoder to GND on the arduino
  * connect + on encoder to the 5V on the arduino
- * 
+ *
  */
  //#include <Wire.h>
  #include <Encoder.h>
  //#define SLAVE_ADDRESS 0x04
-
+int label = 0;
 // ============== Localization Initialization ==============
+const double meterToFeet = 3.28084;
 const double N_per_Rotation = 3200; // in ticks
-const double radius = 0.05; //in meters
-const double robot_width = 0.1; //in meters (Needs to be measured from wheel to wheel)
+const double radius = 0.145/2; //in meters
+const double robot_width = 0.26; //in meters (Needs to be measured from wheel to wheel)
 const double enc_to_rad = 2*PI/N_per_Rotation; //in radian / tick
 
+bool duh = false;
+int enc_last = 0;
 double x = 0; //in meters
 double y = 0; //in meters
 double r = 0; //in meters
@@ -34,7 +37,7 @@ struct wheel :  Encoder{
   double theta(){
     return read() * enc_to_rad;
   }
-  
+ 
   double displacement(){ //returns the displacement made by wheel since it was last called
     int temp = read();
     double tbr = (temp - theta_last) * enc_to_rad * radius;
@@ -60,29 +63,47 @@ int DIRECTIONM1 = HIGH;
 int DIRECTIONM2 = HIGH;
 bool STRAIGHT = false;
 
-double meterToFeet = 3.280839895;
+
 
 int ONCE = 0;
-double voltage = 0;
-double presentVoltage = 8.0; //WHYYYYYYYYYYYYYYYYYYYYYYY
-int PWM_value = 0;
-double error = 0;
+//double voltage = 0;
+//double presentVoltage = 8.0; //WHYYYYYYYYYYYYYYYYYYYYYYY
+int PWM_value_M1 = 0;
+int PWM_value_M2 = 0;
+// double error = 0;
 double errorDis = 0;
+double errorPhi = 0;
 double curDis = 0.0;
 //IN FEET
-double circum = PI*radius*2*meterToFeet;
-double perClick = circum /3200;
-
+//double circum = PI*radius*2;
+//double perClick = circum /3200;
+double lastPT = 0.0;
+double lastPO = 0.0;
+double angVelOne = 0.0;
+double angVelTwo = 0.0;
+double errorAngVel = 0.0;
+double errorForVel = 0.0;
+double desForVel = 0.0;
+double desAngVel = 0.0;
+double barVoltage = 0.0;
+double deltaVoltage = 0.0;
+double samplingRate = 0.01;// in seconds, 10 milliseconds
+double lastTime = 0;
+double hamburger = 0;
+double adjustVariable = 0 ;
 //BELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOWWWWW<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-double desired_angle = 40 * PI/180; // ENTERED IN DEGREES
-double desDis = 1.5; //ENTERED IN FEET
+double INPUT_ANGLE = 90;// ENTERED IN DEGREES
+double INPUT_DISTANCE = 10;//ENTERED IN FEET
+
 //ABOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVEEEEEEE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+double desired_angle = -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5)* PI/180*-1; //CHANGE THIS CONTROLLER
+double desDis = INPUT_DISTANCE - (INPUT_DISTANCE/5)*( 0.105);
 
 //Controller Specifications
-//K was initially like 4.1 
+//K was initially like 4.1
 
 // It'll read the desired direction as the input, then it will output speed to reach the desired location
-float Kp = 0.289202862842511*10; //in Volts/Radian
+float Kp = 0.289202862842511*2; //in Volts/Radian
 float Ki = 10.8369142120677; //in volts /radian
 double I_past = 0;
 double I = 0;
@@ -90,99 +111,150 @@ double I = 0;
 
 void setup() {
   Serial.begin(115200);
-  
+
   pinMode(4, OUTPUT); //Ensures that the motor will move
   pinMode(M1Dir, OUTPUT); //Sets the Motor 1 direction as an output
   pinMode(M2Dir, OUTPUT); //Sets the Motor 2 direction as an output
   pinMode(M1Speed, OUTPUT); //Sets the Motor 1 speed as an output
   pinMode(M2Speed, OUTPUT); //Sets the Motor 2 speed as an output
-  pinMode(12, INPUT); 
-  pinMode(13, OUTPUT); //I2C connection 
+  pinMode(12, INPUT);
+  pinMode(13, OUTPUT); //I2C connection
   digitalWrite(4, HIGH); //Sets pin 4 to high so the motor works
-  //Wire.begin(SLAVE_ADDRESS); //Sets the 
+  //Wire.begin(SLAVE_ADDRESS); //Sets the
   //Wire.onReceive(receiveData);
   Serial.println("Ready!");
 }
-int itt = 0;
+
 void loop() {
 
-    update_position();// UPDATES THE R VALUE WHICH TELLS IT HOW FAR IT HAS DRIVEN  
-
-    if(ONCE == 0){
-      //update_position();
-      desDis = desDis + r;
-    }
-    ONCE++;
-
+    update_position();// UPDATES THE R VALUE WHICH TELLS IT HOW FAR IT HAS DRIVEN
+       
+    //LIST OF POTENTIAL ERRORS:
+    // 1. THE RIGHT AND LEFT WHEELS MAY NEED TO BE REASSIGNED AS EITHER ONE OR TWO
+    // 2. DUE TO WIRING THE WHEELS ORIENTATION MAY BE FLIPPED
+    // 3. WHEN FINDING THE PWM VALUES THE = AND - SIGNS MAY NEED TO BE FLIPPED
+    // 4. IT CURRENTLY MAY ROTATE AND DRIVE FORWARD AT THE SAME TIME
+   
     if ( millis() % 10 == 0){
-      Serial.println(left.read());
-      error = (desired_angle - (phi)); // already in radians ****ALSO NEED TO KNOW HOW THE ENCODERS ARE ORIENTED****
-      //(desired_angle - (robot_width/(radius*2))*(left.theta()+right.theta())); // already in radians ****ALSO NEED TO KNOW HOW THE ENCODERS ARE ORIENTED****
-      //^^^^^^ROTATION ERROR TRACKING
+      //LEFT WHEEL DEFINED AS THE ONE, RIGHT WHEEL DEFINED AS THE TWO
+      hamburger = millis() - lastTime;
+      angVelOne = (left.theta() - lastPO) /(hamburger);
+      angVelTwo = (right.theta() - lastPT) / hamburger;
+      lastTime = millis();
+      lastPT = right.theta();
+      lastPO = left.theta();
+
+      errorPhi = (desired_angle - (phi)); // in radians
       errorDis = (desDis - r); //FORWARD ERROR TRACKING
-      
-      //IF THE CONTROLLER IS IN TURN ROBOT MODE>>>>>
-      if(error > 0 && STRAIGHT == false){
-        DIRECTIONM2 = HIGH; // CW
+     
+      desForVel = errorDis / samplingRate; //MIGHT WANT TO ADJUST THE SPEED
+      desAngVel = errorPhi / samplingRate;
+     
+      //desForVel = 0;
+      //desAngVel = 0;
+
+      if(errorPhi < 0.5 && errorPhi > -0.5){
+      STRAIGHT = true;
+      //desDis += r;    
+      }else{
+      STRAIGHT = false;
+      }
+      //if(angVelOne == 0){
+      //  STRAIGHT = true;
+      //}
+      //Serial.println(STRAIGHT);
+     
+      if(STRAIGHT == true){
+      errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
+      errorAngVel = 0;
+      }else{
+      errorForVel = 0;
+      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))/4; // TAKE OUT THE /2
+      }
+     
+     
+
+      barVoltage = errorForVel * Kp/2;
+      deltaVoltage = errorAngVel * Kp;
+     
+      PWM_value_M2 = ((barVoltage + deltaVoltage) / 2);
+      //PWM_value_M1 = (desAngVel != 0) ? ((barVoltage - deltaVoltage) / 2): PWM_value_M2; //MIGHT NEED TO FLIP THE PLUS AND MINUS SIGNS ON THESE DEPENDING ON WHETHER YOU SET RIGHT WHEEL AS ONE OR TWO AND VICE VERSA
+      PWM_value_M1 = ((barVoltage - deltaVoltage) / 2);
+     
+     
+
+      //CHOOSES DIRECTION
+     
+      if(PWM_value_M1 > 0){
         DIRECTIONM1 = HIGH;
-      } else if(error <= 0 && STRAIGHT == false){
-        DIRECTIONM2 = LOW; //Sets direction of motor to CCW
+      } else{
         DIRECTIONM1 = LOW;
       }
-      //IF THE CONTROLLER IS IN DRIVE FORWARD MODE>>>>>
-      if(errorDis > 0 && STRAIGHT == true){
-        DIRECTIONM1 = HIGH; // CW
+     
+      if(PWM_value_M2 > 0){
         DIRECTIONM2 = LOW;
-      } else if (errorDis <= 0 && STRAIGHT == true){
-        DIRECTIONM1 = LOW; //Sets direction of motor to CCW
+      } else{
         DIRECTIONM2 = HIGH;
       }
-      // Ki part
-      I = I_past+((error)*0.008);    
-      I_past = I;
-      
-      //CHOOSES BETWEEN THE CONTROLLER WHICH DRIVES STRAIGHT OR TURNS THE ROBOT
-      if(STRAIGHT == false){
-        voltage = (Kp * (error)) + (Ki * I);  
-      } else{
-        voltage = (Kp * (errorDis));    
+      //adjustVariable =  (right.read() - right.theta_last) / (left.read() - left.theta_last);
+      if(STRAIGHT != false){
+        adjustVariable = 1;
+      }else{
+      adjustVariable =  (right.read() / (left.read()));
       }
-      //SETS THE PWM VALUE
-      PWM_value = ((voltage/presentVoltage))*255;
-
-      //SETS THE MOTOR SPEED VIA PWM
-      if (PWM_value > 255 || PWM_value < -255) {
-        PWM_value = 255;
+     
+      PWM_value_M1 = (desAngVel > 0) ? ((barVoltage - deltaVoltage) / 2): PWM_value_M2; //MIGHT NEED TO FLIP THE PLUS AND MINUS SIGNS ON THESE DEPENDING ON WHETHER YOU SET RIGHT WHEEL AS ONE OR TWO AND VICE VERSA
+      PWM_value_M2 = PWM_value_M2 *  adjustVariable;
+     
+      //MAKES SURE THE PWM IS WITHIN THE BOUNDS
+      PWM_value_M1 = abs(PWM_value_M1);
+      if (PWM_value_M1 > 255) {
+        PWM_value_M1 = 255;
       }
-      else{ 
-        PWM_value = abs(PWM_value); 
+      PWM_value_M2 = abs(PWM_value_M2);
+      if (PWM_value_M2 > 255) {
+        PWM_value_M2 = 255;
       }
+     
+     
+     
       //Something should probably be scaled for the minimum PWM needed to move the motor
       //WRITES THE SPEED AND DIRECTIONS TO THE MOTORS
-      digitalWrite(M1Dir, DIRECTIONM1);
-      analogWrite(M1Speed, PWM_value);//PWM_value
-      digitalWrite(M2Dir, DIRECTIONM2);
-      analogWrite(M2Speed, PWM_value);//PWM_value
-      Serial.println(PWM_value);
-      
-      //CHECKS TO SEE IF IT CAN GO FORWARD
-      if(error < 2  && !STRAIGHT){
-        STRAIGHT = true;
-        ONCE = 0;  
-        Serial.print("Done Turning");
-        Serial.print('\n');
-      }else if(STRAIGHT && error > 3.5){
-        STRAIGHT = false;
-        Serial.print("Turning again");
-        Serial.print('\n');
+     
+      int bound = 50;
+      if( enc_last == left.read()){
+        duh = true;
       }
-  
+      if (duh) {
+        bound = 70;
+      }
+      if(PWM_value_M1 != 0) {
+        PWM_value_M1 = ((double)PWM_value_M1)/(255)*(255-bound)+bound;
+        PWM_value_M2 = ((double)PWM_value_M2)/(255)*(255-bound)+bound;
+      } else {
+        duh = false;
+      }
+     
+      //enc_last = left.read();
+     
+     
+      //adjustVariable = 0;
+     
+      digitalWrite(M1Dir, DIRECTIONM1); //LITERALLY DON"T FORGET YOU CHANGED SPEED PINS
+      analogWrite(M1Speed, PWM_value_M1 );//PWM_value, WHEEL ON RIGHT SIDE, could adjust by multiplying 0.94, * blah
+      digitalWrite(M2Dir, DIRECTIONM2);
+      analogWrite(M2Speed, PWM_value_M2);//PWM_value, WHEEL ON LEFT SIDE
+      //Serial.println(PWM_value);
+     
+ 
     }
-  if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired
+   
+    if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired
         if(label %12 == 0){
         Serial.print('\n');
-        Serial.print("phi");
-        Serial.print('\t');
+//        Serial.print("phi");
+//        Serial.print('\t');
+//        Serial.print('\t');
         Serial.print("Error");
         Serial.print('\t');
         Serial.print("Dis");
@@ -190,37 +262,52 @@ void loop() {
         Serial.print("desDis");
         Serial.print('\t');    
         Serial.print("x");
-        Serial.print('\t'); 
-        Serial.print("y");
-        Serial.print('\t'); 
-        Serial.print("PWM");
-        Serial.print('\n');       
-        }
-        Serial.print(phi* 180/PI);
         Serial.print('\t');
-        Serial.print(error *180/PI);
+        Serial.print("y");
+        Serial.print('\t');
+        Serial.print("PWM L");
+        Serial.print('\t');  
+        Serial.print("PWM R");
+        Serial.print('\t');
+        Serial.print("Left");
+        Serial.print('\t');
+        Serial.print("Right");
+        Serial.print('\n');    
+        }
+         
+//        Serial.print(phi* 180/PI);
+//        Serial.print('\t');
+       
+        Serial.print(errorPhi *180/PI);
         Serial.print('\t');
         Serial.print(r);
         Serial.print('\t');
         Serial.print(desDis);
         Serial.print('\t');
-        Serial.print(x);
+        Serial.print(x*meterToFeet);
         Serial.print('\t');
-        Serial.print(y);
+        Serial.print(y*meterToFeet);
         Serial.print('\t');
-        Serial.println(PWM_value);
+        Serial.print(PWM_value_M1);
+        Serial.print('\t');
+        Serial.print(PWM_value_M2);
+        Serial.print('\t');
+        Serial.print(left.read());
+        Serial.print('\t');
+        Serial.println(right.read());
+        //Serial.print('\t');
+        //Serial.print('\n');
         label ++;
     }
+   //delay(5);
 }
-  
 
-
-void update_position(){ //Updates position for localization 
+void update_position(){ //Updates position for localization
   double d_r = right.displacement(); //sets a constant position throughout function
   double d_l = left.displacement();
-  
+ 
   x = x + cos(phi)*(d_r + d_l) / 2; //updates x postion
   y = y + sin(phi)*(d_r + d_l) / 2; //updates y position
-  r = meterToFeet * sqrt(x*x+y*y); // upadates r / distance traveled
+  r = meterToFeet * sqrt(x*x + y*y); // upadates r / distance traveled
   phi = (right.read() - left.read()) * enc_to_rad * radius / robot_width; //updates orientation
 }
