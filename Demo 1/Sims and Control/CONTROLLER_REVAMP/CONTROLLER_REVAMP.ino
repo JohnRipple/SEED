@@ -153,8 +153,14 @@ void loop() {
       desForVel = errorDis / samplingRate; //MIGHT WANT TO ADJUST THE SPEED
       desAngVel = errorPhi / samplingRate;
 
-      errorAngVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-      errorForVel = desAngVel - radius*(angVelOne + angVelTwo)/robot_width;
+
+      if(errorAngVel < 1){
+      errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
+      errorAngVel = 0;
+      } else{
+      errorAngVel = desAngVel - radius*(angVelOne + angVelTwo)/robot_width;
+      errorForVel = 0;
+      }
 
       barVoltage = errorForVel * Kp;
       deltaVoltage = errorAngVel * Kp;
