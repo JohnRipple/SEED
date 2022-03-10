@@ -93,11 +93,11 @@ double hamburger = 0;
 double adjustVariable = 0 ;
 
 //BELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOWWWWW<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-double INPUT_ANGLE = 90;// ENTERED IN DEGREES
-double INPUT_DISTANCE = 10;//ENTERED IN FEET
+double INPUT_ANGLE = -90;// ENTERED IN DEGREES
+double INPUT_DISTANCE = 5;//ENTERED IN FEET
 //ABOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVEEEEEEE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-double desired_angle = INPUT_ANGLE* PI/180*-1; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
+double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*10)* PI/180*-1; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
 double desDis = INPUT_DISTANCE - (INPUT_DISTANCE/5)*( 0.105);
 
 //Controller Specifications
@@ -155,25 +155,29 @@ void loop() {
       //desAngVel = 0;
 
       //THIS STATEMENT WILL SWITCH TO STRAIGHT MODE ONCE IT HAAS TURNED A GOOD ANGLE.
-      if((errorPhi < 0.001 && errorPhi > -0.001) || STRAIGHT == true){ //was 0.5
-      STRAIGHT = true;
-      //desDis += r;    
+      if((errorPhi < 0.1 && errorPhi > -0.1) || STRAIGHT == true){ //was 0.5
+        if(STRAIGHT == false){
+             //desDis += r;
+             left.write(0);
+             right.write(0);
+             desired_angle = 0;
+             //desDis += r; 
+        }
+      STRAIGHT = true;   
       }else{
       STRAIGHT = false;
       }
-      //if(angVelOne == 0){
-      //  STRAIGHT = true;
-      //}
-      //Serial.println(STRAIGHT);
+      
 
       //ERROR TRACKING FOR VELOCITY, THE TRUE CASE IS WHEN IT IS IN STRAIGHT MODE, THE FALSE CASE IS IN TURN MODE.
       //STRAIGHT MODE WILL ALSO ERROR TRACK IF THE ANGLE GETS OFF AND SHOULD HOPEFULLY ADJUST IT.
       if(STRAIGHT == true){
       errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))/2; //THIS WAS ZERO
+      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet)); //THIS WAS ZERO
+      //errorAngVel = 0; 
       }else{
       errorForVel = 0;
-      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))/4; // TAKE OUT THE /2
+      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))/2; // TAKE OUT THE /2
       }
      
      
@@ -207,7 +211,7 @@ void loop() {
       adjustVariable =  (right.read() / (left.read()));
       }
      
-      PWM_value_M1 = (desAngVel > 0) ? ((barVoltage - deltaVoltage) / 2): PWM_value_M2;
+      //PWM_value_M1 = (desAngVel > 0) ? ((barVoltage - deltaVoltage) / 2): PWM_value_M2;
       PWM_value_M2 = PWM_value_M2 *  adjustVariable;
      
       //MAKES SURE THE PWM IS WITHIN THE BOUNDS
