@@ -91,12 +91,13 @@ double samplingRate = 0.01;// in seconds, 10 milliseconds
 double lastTime = 0;
 double hamburger = 0;
 double adjustVariable = 0 ;
+
 //BELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOWWWWW<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 double INPUT_ANGLE = 90;// ENTERED IN DEGREES
 double INPUT_DISTANCE = 10;//ENTERED IN FEET
-
 //ABOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVEEEEEEE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-double desired_angle = -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5)* PI/180*-1; //CHANGE THIS CONTROLLER
+
+double desired_angle = INPUT_ANGLE* PI/180*-1; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
 double desDis = INPUT_DISTANCE - (INPUT_DISTANCE/5)*( 0.105);
 
 //Controller Specifications
@@ -153,7 +154,8 @@ void loop() {
       //desForVel = 0;
       //desAngVel = 0;
 
-      if(errorPhi < 0.5 && errorPhi > -0.5){
+      //THIS STATEMENT WILL SWITCH TO STRAIGHT MODE ONCE IT HAAS TURNED A GOOD ANGLE.
+      if((errorPhi < 0.001 && errorPhi > -0.001) || STRAIGHT == true){ //was 0.5
       STRAIGHT = true;
       //desDis += r;    
       }else{
@@ -163,10 +165,12 @@ void loop() {
       //  STRAIGHT = true;
       //}
       //Serial.println(STRAIGHT);
-     
+
+      //ERROR TRACKING FOR VELOCITY, THE TRUE CASE IS WHEN IT IS IN STRAIGHT MODE, THE FALSE CASE IS IN TURN MODE.
+      //STRAIGHT MODE WILL ALSO ERROR TRACK IF THE ANGLE GETS OFF AND SHOULD HOPEFULLY ADJUST IT.
       if(STRAIGHT == true){
       errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-      errorAngVel = 0;
+      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))/2; //THIS WAS ZERO
       }else{
       errorForVel = 0;
       errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))/4; // TAKE OUT THE /2
@@ -178,13 +182,11 @@ void loop() {
       deltaVoltage = errorAngVel * Kp;
      
       PWM_value_M2 = ((barVoltage + deltaVoltage) / 2);
-      //PWM_value_M1 = (desAngVel != 0) ? ((barVoltage - deltaVoltage) / 2): PWM_value_M2; //MIGHT NEED TO FLIP THE PLUS AND MINUS SIGNS ON THESE DEPENDING ON WHETHER YOU SET RIGHT WHEEL AS ONE OR TWO AND VICE VERSA
       PWM_value_M1 = ((barVoltage - deltaVoltage) / 2);
      
      
 
-      //CHOOSES DIRECTION
-     
+      //CHOOSES DIRECTION     
       if(PWM_value_M1 > 0){
         DIRECTIONM1 = HIGH;
       } else{
@@ -197,13 +199,15 @@ void loop() {
         DIRECTIONM2 = HIGH;
       }
       //adjustVariable =  (right.read() - right.theta_last) / (left.read() - left.theta_last);
-      if(STRAIGHT != false){
+
+      //THIS PART MAY MOST DEFINITELY BE JANK, totally should probably take this out <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      if(STRAIGHT == false){
         adjustVariable = 1;
       }else{
       adjustVariable =  (right.read() / (left.read()));
       }
      
-      PWM_value_M1 = (desAngVel > 0) ? ((barVoltage - deltaVoltage) / 2): PWM_value_M2; //MIGHT NEED TO FLIP THE PLUS AND MINUS SIGNS ON THESE DEPENDING ON WHETHER YOU SET RIGHT WHEEL AS ONE OR TWO AND VICE VERSA
+      PWM_value_M1 = (desAngVel > 0) ? ((barVoltage - deltaVoltage) / 2): PWM_value_M2;
       PWM_value_M2 = PWM_value_M2 *  adjustVariable;
      
       //MAKES SURE THE PWM IS WITHIN THE BOUNDS
@@ -240,10 +244,10 @@ void loop() {
      
       //adjustVariable = 0;
      
-      digitalWrite(M1Dir, DIRECTIONM1); //LITERALLY DON"T FORGET YOU CHANGED SPEED PINS
-      analogWrite(M1Speed, PWM_value_M1 );//PWM_value, WHEEL ON RIGHT SIDE, could adjust by multiplying 0.94, * blah
+      digitalWrite(M1Dir, DIRECTIONM1); //
+      analogWrite(M1Speed, PWM_value_M1 );//PWM_value, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
       digitalWrite(M2Dir, DIRECTIONM2);
-      analogWrite(M2Speed, PWM_value_M2);//PWM_value, WHEEL ON LEFT SIDE
+      analogWrite(M2Speed, PWM_value_M2);//PWM_value, WHEEL ON LEFT SIDE IF LOOKING FROM BACK
       //Serial.println(PWM_value);
      
  
