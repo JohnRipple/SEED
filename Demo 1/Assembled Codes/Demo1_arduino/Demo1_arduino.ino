@@ -172,7 +172,7 @@ void loop() {
       
       if(STRAIGHT == true){
         errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-        errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))*2; //THIS WAS ZERO
+        errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))*4; //THIS WAS ZERO
       }else{
         errorForVel = 0;
         errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))/2; // TAKE OUT THE /2
