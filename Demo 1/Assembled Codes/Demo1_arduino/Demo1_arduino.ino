@@ -18,8 +18,8 @@ int label = 0;
 // ============== Localization Initialization ==============
 const double meterToFeet = 3.28084;
 const double N_per_Rotation = 3200; // in ticks
-const double radius = 0.145/2; //in meters
-const double robot_width = 0.26; //in meters (Needs to be measured from wheel to wheel)
+const double radius =  (0.145/2); //in meters
+const double robot_width = 0.29 ; //in meters (Needs to be measured from wheel to wheel)
 const double enc_to_rad = 2*PI/N_per_Rotation; //in radian / tick
 
 bool duh = false;
@@ -92,11 +92,10 @@ double lastTime = 0;
 double hamburger = 0;
 double adjustVariable = 0 ;
 //BELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOWWWWW<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-double INPUT_ANGLE = 0;// ENTERED IN DEGREES
-double INPUT_DISTANCE = 10;//ENTERED IN FEET
-
+double INPUT_ANGLE = 90;// ENTERED IN DEGREES
+double INPUT_DISTANCE = 0;//ENTERED IN FEET
 //ABOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVEEEEEEE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-double desired_angle = -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5)* PI/180*-1; //CHANGE THIS CONTROLLER
+double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*33.5)* PI/180; //CHANGE THIS CONTROLLER
 double desDis = INPUT_DISTANCE - (INPUT_DISTANCE/5)*( 0.105);
 //double desDis = INPUT_DISTANCE; 
 
@@ -148,20 +147,19 @@ void loop() {
       errorPhi = (desired_angle - (phi)); // in radians
       errorDis = (desDis - r); //FORWARD ERROR TRACKING
       
-      desForVel = errorDis / samplingRate; //MIGHT WANT TO ADJUST THE SPEED
-      desAngVel = errorPhi / samplingRate;
+      desForVel = errorDis / hamburger; //MIGHT WANT TO ADJUST THE SPEED, was samplingRate
+      desAngVel = errorPhi / hamburger;
       
       //desForVel = 0;
       //desAngVel = 0;
 
       if((errorPhi < 0.1 && errorPhi > -0.1) || STRAIGHT == true){ //was 0.5
         if(STRAIGHT == false){
-             //desDis += r;
              left.write(0);
              right.write(0);
              desired_angle = 0;
-             
-             //desDis += r; 
+             PWM_value_MR = 0;
+             PWM_value_ML = 0;          
         }
         STRAIGHT = true;   
       }else{
@@ -172,10 +170,10 @@ void loop() {
       
       if(STRAIGHT == true){
         errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-        errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))*4; //THIS WAS ZERO
+        errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width*meterToFeet))*4; //THIS WAS ZERO
       }else{
         errorForVel = 0;
-        errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width * meterToFeet))/2; // TAKE OUT THE /2
+        errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width*meterToFeet))/2; // TAKE OUT THE /2
       }
      
       
