@@ -93,14 +93,16 @@ double hamburger = 0;
 double adjustVariable = 0 ;
 double oneChange = 0;
 double twoChange = 0;
+double angStrong = 7;
 bool firstTime = true;
 //BELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOWWWWW<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-double INPUT_ANGLE = 45;// ENTERED IN DEGREES
-double INPUT_DISTANCE = 8;//ENTERED IN FEET
+double INPUT_ANGLE = 90;// ENTERED IN DEGREES
+double INPUT_DISTANCE = 10;//ENTERED IN FEET
 //ABOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVEEEEEEE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 //double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*10)* PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
 double desired_angle = (INPUT_ANGLE) * PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
+//double desDis = INPUT_DISTANCE;// - (INPUT_DISTANCE/5)*( 0.105);
 double desDis = INPUT_DISTANCE - (INPUT_DISTANCE/5)*( 0.105);
 
 //Controller Specifications
@@ -167,11 +169,14 @@ void loop() {
       if((errorPhi < 0.01 && errorPhi > -0.01) || STRAIGHT == true){ //was 0.5
         if(STRAIGHT == false){
              //desDis += r;
+             analogWrite(M1Speed, 0 );
+             analogWrite(M2Speed, 0 );
              left.write(0);
              right.write(0);
              desired_angle = 0;
-             x=0;
-             y=0;
+             //x=0;
+             //y=0;
+             delay(1000);
              //desDis += r; 
         }
       STRAIGHT = true;   
@@ -184,14 +189,16 @@ void loop() {
       //STRAIGHT MODE WILL ALSO ERROR TRACK IF THE ANGLE GETS OFF AND SHOULD HOPEFULLY ADJUST IT.
       if(STRAIGHT == true){
       errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width)); //THIS WAS ZERO
+      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong; //THIS WAS 7 abs(errorDis + errorPhi)
       //errorAngVel = 0; 
       }else{
       errorForVel = 0;
       errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2; // TAKE OUT THE /2
       }
      
-     
+     if(errorDis < 1){
+      angStrong = 0.5;
+     }
 
       barVoltage = errorForVel * Kp/2;
       deltaVoltage = errorAngVel * Kp;
@@ -221,12 +228,17 @@ void loop() {
       //}else{
       adjustVariable =  (right.read() / (left.read()));
       //}
-     
+           //Serial.println(PWM_value_M2);
+
       //PWM_value_M1 = (desAngVel > 0) ? ((barVoltage - deltaVoltage) / 2): PWM_value_M2;
-      PWM_value_M2 = PWM_value_M2 *  adjustVariable;
+      //PWM_value_M2 = PWM_value_M2 *  adjustVariable;
      
       //MAKES SURE THE PWM IS WITHIN THE BOUNDS
-      PWM_value_M1 = abs(PWM_value_M1);
+      if(STRAIGHT){
+      PWM_value_M1 = abs(abs(PWM_value_M1));//-6*(8/INPUT_DISTANCE));
+      } else{
+      PWM_value_M1 = abs(PWM_value_M1); 
+      }
       if (PWM_value_M1 > 255) {
         PWM_value_M1 = 255;
       }
@@ -235,21 +247,27 @@ void loop() {
         PWM_value_M2 = 255;
       }
      
-     
-     
+      
       //Something should probably be scaled for the minimum PWM needed to move the motor
       //WRITES THE SPEED AND DIRECTIONS TO THE MOTORS
      
       double bound = 100;
       if(PWM_value_M1 != 0) {
         PWM_value_M1 = ((double)PWM_value_M1)/(255)*(255-bound)+bound;
+        
+      }
+      if(PWM_value_M2 != 0) {
+        if(STRAIGHT) {
+          PWM_value_M2 *= 0.96;
+        }
         PWM_value_M2 = ((double)PWM_value_M2)/(255)*(255-bound)+bound;
       }
       
      
       //enc_last = left.read();
      
-     
+      
+      
       //adjustVariable = 0;
      
       digitalWrite(M1Dir, DIRECTIONM1); //
@@ -268,6 +286,10 @@ void loop() {
 //        Serial.print('\t');
 //        Serial.print('\t');
         Serial.print("Error");
+        Serial.print('\t');
+        Serial.print("Er vel");
+        Serial.print('\t');
+        Serial.print("Er Ang");
         Serial.print('\t');
         Serial.print("Dis");
         Serial.print('\t');
@@ -292,13 +314,17 @@ void loop() {
        
         Serial.print(errorPhi *180/PI);
         Serial.print('\t');
+        Serial.print(barVoltage);
+        Serial.print('\t');
+        Serial.print(deltaVoltage);
+        Serial.print('\t');
         Serial.print(r);
         Serial.print('\t');
         Serial.print(desDis);
         Serial.print('\t');
-        Serial.print(x*meterToFeet);
+        Serial.print(x);
         Serial.print('\t');
-        Serial.print(y*meterToFeet);
+        Serial.print(y);
         Serial.print('\t');
         Serial.print(PWM_value_M1);
         Serial.print('\t');
