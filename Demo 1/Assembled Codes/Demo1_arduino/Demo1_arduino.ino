@@ -93,11 +93,11 @@ double hamburger = 0;
 double adjustVariable = 0 ;
 double oneChange = 0;
 double twoChange = 0;
-double angStrong = 7;
+double angStrong = 8;
 bool firstTime = true;
 //BELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOWWWWW<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-double INPUT_ANGLE = 90;// ENTERED IN DEGREES
-double INPUT_DISTANCE = 10;//ENTERED IN FEET
+double INPUT_ANGLE = 180;// ENTERED IN DEGREES
+double INPUT_DISTANCE = 3;//ENTERED IN FEET
 //ABOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVEEEEEEE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 //double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*10)* PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
@@ -196,8 +196,8 @@ void loop() {
       errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2; // TAKE OUT THE /2
       }
      
-     if(errorDis < 1){
-      angStrong = 0.5;
+     if(errorDis < 0.5){
+      angStrong = 1;
      }
 
       barVoltage = errorForVel * Kp/2;
@@ -258,7 +258,7 @@ void loop() {
       }
       if(PWM_value_M2 != 0) {
         if(STRAIGHT) {
-          PWM_value_M2 *= 0.96;
+          PWM_value_M2 *= 0.923;
         }
         PWM_value_M2 = ((double)PWM_value_M2)/(255)*(255-bound)+bound;
       }
