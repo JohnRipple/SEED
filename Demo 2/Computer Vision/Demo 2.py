@@ -116,7 +116,7 @@ while True:
     #Find the positions of all non zero values in the image
     x = -1
     y = -1
-    contours, _ = cv.findContours(frame.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    _,contours, _ = cv.findContours(frame.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     
     if len(contours) < 1:
         if found == True:
@@ -128,6 +128,11 @@ while True:
         rect = cv.minAreaRect(largest_item)
         box = cv.boxPoints(rect)
         box = np.int0(box)
+        rows,cols = frame.shape[:2]
+        [vx,vy,x,y] = cv.fitLine(largest_item, cv.DIST_L2,0,0.01,0.01)
+        lefty = int((-x*vy/vx) + y)
+        righty = int(((cols-x)*vy/vx)+y)
+        cv.line(frame,(cols-1,righty),(0,lefty),(0,255,0),2)
         #hull = cv.convexHull(largest_item)
         cv.drawContours(frame,[box],0,(0,0,255),2)
         #box = geom.order_box(box)
