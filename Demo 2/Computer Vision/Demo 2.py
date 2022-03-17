@@ -103,7 +103,6 @@ while True:
         mask = mask | cv.inRange(frame, lower, upper)
         
     frame = cv.bitwise_and(frame, frame, mask = mask)
-    
     frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel)
     
     #Finds the center of the largest object left in the image
@@ -116,26 +115,20 @@ while True:
     #Find the positions of all non zero values in the image
     x = -1
     y = -1
-    _,contours, _ = cv.findContours(frame.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv.findContours(frame.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     
     if len(contours) < 1:
         if found == True:
             print("No Markers Found")
-    else: 
+    else:
+        # Create bounding box for the largest contour found 
         largest_item = max(contours, key=cv.contourArea)
-        #largest item
         frame = cv.cvtColor(frame, cv.COLOR_GRAY2BGR)
         rect = cv.minAreaRect(largest_item)
         box = cv.boxPoints(rect)
         box = np.int0(box)
-        rows,cols = frame.shape[:2]
-        [vx,vy,x,y] = cv.fitLine(largest_item, cv.DIST_L2,0,0.01,0.01)
-        lefty = int((-x*vy/vx) + y)
-        righty = int(((cols-x)*vy/vx)+y)
-        cv.line(frame,(cols-1,righty),(0,lefty),(0,255,0),2)
-        #hull = cv.convexHull(largest_item)
         cv.drawContours(frame,[box],0,(0,0,255),2)
-        #box = geom.order_box(box)
+        cv.drawContours(org,[box],0,(0,0,255),2)
         root = box[0]
 
         # find the longer side
@@ -176,6 +169,7 @@ while True:
         found = True
     #findangle(x, frame.shape[1]/2)
     cv.imshow("Frame", frame)
+    cv.imshow("Original", org)
     if cv.waitKey(1) & 0xFF == 27:
         break
     
