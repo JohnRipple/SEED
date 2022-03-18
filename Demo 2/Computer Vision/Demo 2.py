@@ -115,7 +115,7 @@ while True:
     #Find the positions of all non zero values in the image
     x = -1
     y = -1
-    contours, _ = cv.findContours(frame.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    _,contours, _ = cv.findContours(frame.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     
     if len(contours) < 1:
         if found == True:
@@ -155,7 +155,7 @@ while True:
         angle = angle3P(right_point, offshoot, left_point)
         if left_point[1] > right_point[0]:
             angle = -angle
-        print(angle)
+        print(round(angle, 4))
         
 
         M = cv.moments(largest_item)
