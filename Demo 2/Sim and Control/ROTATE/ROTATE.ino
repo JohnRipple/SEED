@@ -144,7 +144,7 @@ void loop() {
        
     if ( millis() % 10 == 0){
       
-      intializeAngleVel()
+      intializeAngleVel();
       //desForVel = 3; //THIS IS A RANDOM VALUE, could include a different forward velocity in each function
       
       if(errorHorizontal > 0.1 || errorHorizontal < -0.1){
@@ -302,7 +302,10 @@ void alignParallel(){
 
 void receiveData(int byteCount) {
       RotateForever = false;
-      arrayOfInputs = Wire.read(); //Sets the quadrant to the input from the pi. The -1 converts the signal to the desired quadrant
+      int arrayOfInputs[4] = {0};
+      for(int i = 0; i < 4; i++) {
+        arrayOfInputs[i] = Wire.read(); //Sets the quadrant to the input from the pi. The -1 converts the signal to the desired quadrant
+      }
       //horiztonal
       horizontalAngle = arrayOfInputs[0] * -1^arrayOfInputs[1];
       //bounding
