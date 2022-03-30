@@ -100,7 +100,6 @@ double horizontalAngle = 0;
 double boundingAngle = 0;
 
 
-bool firstTime = true;
 bool RotateForever = true;
 //BELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOWWWWW<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 double INPUT_ANGLE = 0;// ENTERED IN DEGREES
@@ -136,14 +135,11 @@ void setup() {
   Wire.begin(SLAVE_ADDRESS); //Sets the
   Wire.onReceive(receiveData);
   Serial.println("Ready!");
+ delay(1000);
 }
 
 void loop() {
-  if(firstTime){
-    delay(1000);
-    firstTime = false;
-  }
-
+  
     update_position();// UPDATES THE R VALUE WHICH TELLS IT HOW FAR IT HAS DRIVEN
        
     if ( millis() % 10 == 0){
