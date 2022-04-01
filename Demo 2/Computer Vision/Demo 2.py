@@ -116,7 +116,7 @@ Output:    None
 '''
 def calibrate(camera):
     camera.resolution = (320, 240) # Set resolution
-    #camera.iso = 300               # Fix iso (100/200 for light, 300/400 for dark)
+    #camera.iso = 50               # Fix iso (100/200 for light, 300/400 for dark)
     camera.framerate = 24          # Fix framerate
     sleep(2)                  # Allow camera to adjust
     #camera.shutter_speed = camera.exposure_speed
@@ -167,7 +167,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
         # find colors within the specified boundaries and apply mask
         mask = mask | cv.inRange(frame, lower, upper) 
     frame = cv.bitwise_and(frame, frame, mask = mask)
-    frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel)
+    #frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel)
 
     # Finds the center of the largest object left in the image
     gray = cv.cvtColor(frame, cv.COLOR_HSV2BGR)  # Convert image to grayscale

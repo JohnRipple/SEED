@@ -65,6 +65,10 @@ bool STRAIGHT = true;
 
 int state = 0; //0: find tape; 1: center tape; 2: move forward till tape in lower 1/3; 3: 
 int nextState = 0;
+int Rotate = 1;
+int Forward = 0;
+int AlignH = 0;
+int AlignS = 0;
 
 int ONCE = 0;
 //double voltage = 0;
@@ -146,33 +150,23 @@ void loop() {
     if ( millis() % 10 == 0){
       
       intializeAngleVel();
-      
-      switch(state){
-        case 0:
-          rotate(-1);
-          break;
-        case 1:
-          turnInPlace(shiftAngle);
-          nextState = 4;
-          state = 4;
-          break;
-        case 2:
-          nextState = 4;
-          state = 4;
-          break;
-        case 3:
-          nextState = 4;
-          state = 4;
-          break;
-        case 4:
-          PWM_value_R = 0;
-          PWM_value_L = 0;
-          state = nextState;
-          break;
-        default:
-          Serial.println("ERROR with state");
+
+      if(Rotate) {
+        rotate(-1);
+      }
+      if(Forward) {
         
       }
+      if(AlignH) {
+
+        alignParallel();
+        
+      }
+      if(AlignS ) {
+        //alignCenter();
+        turnInPlace(shiftAngle);
+      }
+      
       //desForVel = 3; //THIS IS A RANDOM VALUE, could include a different forward velocity in each function
       
 //      if(errorHorizontal > 3 || errorHorizontal < -3){
@@ -183,12 +177,12 @@ void loop() {
 //      alignParallel();
 //      }      
       //This guy makes the thing rotate forever
-      if(RotateForever){
-        rotate(-1);
-      }else{
-        PWM_value_R = 0;
-        PWM_value_L = 0;
-      }
+//      if(RotateForever){
+//        rotate(-1);
+//      }else{
+//        PWM_value_R = 0;
+//        PWM_value_L = 0;
+//      }
       speedDirectionSet(); 
     }
    //printTest(); 
@@ -247,7 +241,8 @@ void intializeAngleVel(){
 void alignCenter(){
       errorPhi = (0 - (shiftAngle));
            
-      desAngVel = errorPhi / samplingRate;  
+      desAngVel = errorPhi / samplingRate;
+      desForVel = 0;  
 
       errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
       errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong; //THIS WAS 7 abs(errorDis + errorPhi)
@@ -270,12 +265,13 @@ void alignParallel(){
       barVoltage = errorForVel * Kp/2;
       deltaVoltage = errorAngVel * Kp;     
      
-      PWM_value_L = ((barVoltage + deltaVoltage) / 2);
-      PWM_value_R = ((barVoltage - deltaVoltage) / 2);
+      PWM_value_L = ((barVoltage + deltaVoltage) / 4);
+      PWM_value_R = ((barVoltage - deltaVoltage) / 4);
 }
 
 void receiveData(int byteCount) {
-      //RotateForever = false;
+      Rotate = false;
+      AlignS = true;
       nextState = 1;
       state = 4;
       int arrayOfInputs[4] = {0};
@@ -284,9 +280,9 @@ void receiveData(int byteCount) {
         arrayOfInputs[i] = Wire.read(); //Sets the quadrant to the input from the pi. The -1 converts the signal to the desired quadrant
       }
       //horiztonal
-      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]);
+      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]) * PI/180;
       //shift
-      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3]);
+      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* PI/180;
      
 }
 
@@ -339,14 +335,18 @@ void speedDirectionSet(){
       //Serial.println(PWM_value_);
      
 }
-
+double phiStart = -100;
 void turnInPlace(double angle){ //TODO: Take input and turn that much
-  double phiStart = phi;
-  while(phi - phiStart < angle + 10 ){ //10 is error
-    if(millis() % 10 == 0){
+  if(phiStart == -100) {
+    phiStart = phi;
+  }
+//  if(abs(phi - phiStart) < abs(angle) + 5*PI/180){//10 is error
+  if(abs(angle) > 3*PI/180) {
+    
       update_position();
       intializeAngleVel();
-      
+    
+      desForVel = 0;
       errorPhi = phiStart + angle - phi;
              
       desAngVel = errorPhi / samplingRate;  
@@ -357,12 +357,17 @@ void turnInPlace(double angle){ //TODO: Take input and turn that much
       barVoltage = errorForVel * Kp/2;
       deltaVoltage = errorAngVel * Kp;     
      
-      PWM_value_L = ((barVoltage + deltaVoltage) / 2);
+      PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
       PWM_value_R = ((barVoltage - deltaVoltage) / 2);
-  
-      speedDirectionSet();
+//      Serial.println(phi);
+//      Serial.println(phiStart);
+      
+      //speedDirectionSet();
+      printTest();
+    
+  } else {
+      phiStart = -100;
     }
-  }
 }
 
 void moveForward(double ft){ //TODO: Take input and move forward that much
@@ -386,7 +391,7 @@ void moveForward(double ft){ //TODO: Take input and move forward that much
   }
 }
 
-void testPrint(){
+void printTest(){
   if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired
         if(label %12 == 0){
         Serial.print('\n');
