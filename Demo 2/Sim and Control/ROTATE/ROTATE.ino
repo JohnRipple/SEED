@@ -161,64 +161,8 @@ void loop() {
       speedDirectionSet(); 
     }
    
-    if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired
-        if(label %12 == 0){
-        Serial.print('\n');
-//        Serial.print("phi");
-//        Serial.print('\t');
-//        Serial.print('\t');
-        Serial.print("Error");
-        Serial.print('\t');
-        Serial.print("Er vel");
-        Serial.print('\t');
-        Serial.print("Er Ang");
-        Serial.print('\t');
-        Serial.print("Dis");
-        Serial.print('\t');
-        Serial.print("desDis");
-        Serial.print('\t');    
-        Serial.print("x");
-        Serial.print('\t');
-        Serial.print("y");
-        Serial.print('\t');
-        Serial.print("PWM L");
-        Serial.print('\t');  
-        Serial.print("PWM R");
-        Serial.print('\t');
-        Serial.print("Left");
-        Serial.print('\t');
-        Serial.print("Right");
-        Serial.print('\n');    
-        }
-         
-//        Serial.print(phi* 180/PI);
-//        Serial.print('\t');
-       
-        Serial.print(errorPhi *180/PI);
-        Serial.print('\t');
-        Serial.print(barVoltage);
-        Serial.print('\t');
-        Serial.print(deltaVoltage);
-        Serial.print('\t');
-        Serial.print(r);
-        Serial.print('\t');
-        Serial.print(desDis);
-        Serial.print('\t');
-        Serial.print(x);
-        Serial.print('\t');
-        Serial.print(y);
-        Serial.print('\t');
-        Serial.print(PWM_value_M1);
-        Serial.print('\t');
-        Serial.print(PWM_value_M2);
-        Serial.print('\t');
-        Serial.print(left.read());
-        Serial.print('\t');
-        Serial.println(right.read());
-        //Serial.print('\t');
-        //Serial.print('\n');
-        label ++;
-    }
+    printTest();
+    
    //delay(5);
 }
 
@@ -360,4 +304,65 @@ void speedDirectionSet(){
       analogWrite(M2Speed, PWM_value_M2);//PWM_value, WHEEL ON LEFT SIDE IF LOOKING FROM BACK
       //Serial.println(PWM_value);
      
+}
+
+void printTest(){
+ if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired
+        if(label %12 == 0){
+        Serial.print('\n');
+//        Serial.print("phi");
+//        Serial.print('\t');
+//        Serial.print('\t');
+        Serial.print("Error");
+        Serial.print('\t');
+        Serial.print("Er vel");
+        Serial.print('\t');
+        Serial.print("Er Ang");
+        Serial.print('\t');
+        Serial.print("Dis");
+        Serial.print('\t');
+        Serial.print("desDis");
+        Serial.print('\t');    
+        Serial.print("x");
+        Serial.print('\t');
+        Serial.print("y");
+        Serial.print('\t');
+        Serial.print("PWM L");
+        Serial.print('\t');  
+        Serial.print("PWM R");
+        Serial.print('\t');
+        Serial.print("Left");
+        Serial.print('\t');
+        Serial.print("Right");
+        Serial.print('\n');    
+        }
+         
+//        Serial.print(phi* 180/PI);
+//        Serial.print('\t');
+       
+        Serial.print(errorPhi *180/PI);
+        Serial.print('\t');
+        Serial.print(barVoltage);
+        Serial.print('\t');
+        Serial.print(deltaVoltage);
+        Serial.print('\t');
+        Serial.print(r);
+        Serial.print('\t');
+        Serial.print(desDis);
+        Serial.print('\t');
+        Serial.print(x);
+        Serial.print('\t');
+        Serial.print(y);
+        Serial.print('\t');
+        Serial.print(PWM_value_M1);
+        Serial.print('\t');
+        Serial.print(PWM_value_M2);
+        Serial.print('\t');
+        Serial.print(left.read());
+        Serial.print('\t');
+        Serial.println(right.read());
+        //Serial.print('\t');
+        //Serial.print('\n');
+        label ++;
+    }
 }
