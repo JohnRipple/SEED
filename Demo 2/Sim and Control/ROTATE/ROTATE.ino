@@ -63,7 +63,7 @@ int DIRECTIONM1 = HIGH;
 int DIRECTIONM2 = HIGH;
 bool STRAIGHT = true;
 
-
+int todo = 0; //0: find tape; 1: center tape; 2: move forward till tape in lower 1/3; 3: 
 
 int ONCE = 0;
 //double voltage = 0;
@@ -147,7 +147,7 @@ void loop() {
       intializeAngleVel();
       //desForVel = 3; //THIS IS A RANDOM VALUE, could include a different forward velocity in each function
       
-      if(errorHorizontal > 0.1 || errorHorizontal < -0.1){
+      if(errorHorizontal > 3 || errorHorizontal < -3){
       desForVel = 2;
       alignCenter();
       } else{
@@ -160,8 +160,7 @@ void loop() {
       }
       speedDirectionSet(); 
     }
-   
-    printTest();
+   printTest(); 
     
    //delay(5);
 }
@@ -178,8 +177,8 @@ void update_position(){ //Updates position for localization
 }
 
 void rotate(int direct){
-  PWM_value_M1 = 100*direct;
-  PWM_value_M2 = 0;
+  PWM_value_M1 = 20*direct;
+  PWM_value_M2 = -20*direct;
   
 //        if(RotateForever){
 //        //if (millis() % 100 == 0){
@@ -306,8 +305,31 @@ void speedDirectionSet(){
      
 }
 
-void printTest(){
- if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired
+void turnInPlace(double angle){ //TODO: Take input and turn that much
+  
+}
+
+void moveForward(double ft){ //TODO: Take input and move forward that much
+  while(PWM_value_M2 || PWM_value_M1){
+    intializeAngleVel();
+    
+    errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
+    errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong;
+
+    if(errorDis < 0.5){
+      angStrong = 1;
+    }
+    barVoltage = errorForVel * Kp/2;
+    deltaVoltage = errorAngVel * Kp;
+   
+    PWM_value_M2 = ((barVoltage + deltaVoltage) / 2);
+    PWM_value_M1 = abs((barVoltage - deltaVoltage) / 2);
+    
+  }
+}
+
+void testPrint(){
+  if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired
         if(label %12 == 0){
         Serial.print('\n');
 //        Serial.print("phi");
