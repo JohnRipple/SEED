@@ -63,13 +63,14 @@ int DIRECTIONM1 = HIGH;
 int DIRECTIONM2 = HIGH;
 bool STRAIGHT = true;
 
-int todo = 0; //0: find tape; 1: center tape; 2: move forward till tape in lower 1/3; 3: 
+int state = 0; //0: find tape; 1: center tape; 2: move forward till tape in lower 1/3; 3: 
+int nextState = 0;
 
 int ONCE = 0;
 //double voltage = 0;
 //double presentVoltage = 8.0; //WHYYYYYYYYYYYYYYYYYYYYYYY
-int PWM_value_M1 = 0; // DONT FORGET ABOUT THIS _____________________________________________________________________________________________________
-int PWM_value_M2 = 0;
+int PWM_value_R = 0; // DONT FORGET ABOUT THIS _____________________________________________________________________________________________________
+int PWM_value_L = 0;
 // double error = 0;
 double errorDis = 0;
 double errorPhi = 0;
@@ -97,7 +98,7 @@ double twoChange = 0;
 double angStrong = 8;
 
 double horizontalAngle = 0;
-double boundingAngle = 0;
+double shiftAngle = 0;
 
 
 bool RotateForever = true;
@@ -145,22 +146,52 @@ void loop() {
     if ( millis() % 10 == 0){
       
       intializeAngleVel();
+      
+      switch(state){
+        case 0:
+          rotate(-1);
+          break;
+        case 1:
+          turnInPlace(shiftAngle);
+          nextState = 4;
+          state = 4;
+          break;
+        case 2:
+          nextState = 4;
+          state = 4;
+          break;
+        case 3:
+          nextState = 4;
+          state = 4;
+          break;
+        case 4:
+          PWM_value_R = 0;
+          PWM_value_L = 0;
+          state = nextState;
+          break;
+        default:
+          Serial.println("ERROR with state");
+        
+      }
       //desForVel = 3; //THIS IS A RANDOM VALUE, could include a different forward velocity in each function
       
-      if(errorHorizontal > 3 || errorHorizontal < -3){
-      desForVel = 2;
-      alignCenter();
-      } else{
-      desForVel = 4;
-      alignParallel();
-      }      
+//      if(errorHorizontal > 3 || errorHorizontal < -3){
+//      desForVel = 2;
+//      alignCenter();
+//      } else{
+//      desForVel = 4;
+//      alignParallel();
+//      }      
       //This guy makes the thing rotate forever
       if(RotateForever){
         rotate(-1);
+      }else{
+        PWM_value_R = 0;
+        PWM_value_L = 0;
       }
       speedDirectionSet(); 
     }
-   printTest(); 
+   //printTest(); 
     
    //delay(5);
 }
@@ -177,13 +208,13 @@ void update_position(){ //Updates position for localization
 }
 
 void rotate(int direct){
-  PWM_value_M1 = 20*direct;
-  PWM_value_M2 = -20*direct;
+  PWM_value_R = 20*direct;
+  PWM_value_L = -20*direct;
   
 //        if(RotateForever){
 //        //if (millis() % 100 == 0){
-//        PWM_value_M1 = 50;
-//        PWM_value_M2 = 50;
+//        PWM_value_R = 50;
+//        PWM_value_L = 50;
 //        if (errorDis < 0.1){
 //          RotateForever = false;
 //          desired_angle = 90 * PI/180;
@@ -214,7 +245,7 @@ void intializeAngleVel(){
 }
 
 void alignCenter(){
-      errorPhi = (0 - (boundingAngle));
+      errorPhi = (0 - (shiftAngle));
            
       desAngVel = errorPhi / samplingRate;  
 
@@ -224,8 +255,8 @@ void alignCenter(){
       barVoltage = errorForVel * Kp/2;
       deltaVoltage = errorAngVel * Kp;     
      
-      PWM_value_M2 = ((barVoltage + deltaVoltage) / 2);
-      PWM_value_M1 = ((barVoltage - deltaVoltage) / 2);
+      PWM_value_L = ((barVoltage + deltaVoltage) / 2);
+      PWM_value_R = ((barVoltage - deltaVoltage) / 2);
 }
 
 void alignParallel(){
@@ -239,31 +270,35 @@ void alignParallel(){
       barVoltage = errorForVel * Kp/2;
       deltaVoltage = errorAngVel * Kp;     
      
-      PWM_value_M2 = ((barVoltage + deltaVoltage) / 2);
-      PWM_value_M1 = ((barVoltage - deltaVoltage) / 2);
+      PWM_value_L = ((barVoltage + deltaVoltage) / 2);
+      PWM_value_R = ((barVoltage - deltaVoltage) / 2);
 }
 
 void receiveData(int byteCount) {
-      RotateForever = false;
+      //RotateForever = false;
+      nextState = 1;
+      state = 4;
       int arrayOfInputs[4] = {0};
+      Wire.read();
       for(int i = 0; i < 4; i++) {
         arrayOfInputs[i] = Wire.read(); //Sets the quadrant to the input from the pi. The -1 converts the signal to the desired quadrant
       }
       //horiztonal
-      horizontalAngle = arrayOfInputs[0] * -1^arrayOfInputs[1];
-      //bounding
-      boundingAngle = arrayOfInputs[2] * -1^arrayOfInputs[3];
+      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]);
+      //shift
+      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3]);
+     
 }
 
 void speedDirectionSet(){
   //CHOOSES DIRECTION     
-      if(PWM_value_M1 > 0){
+      if(PWM_value_R > 0){
         DIRECTIONM1 = HIGH;
       } else{
         DIRECTIONM1 = LOW;
       }
      
-      if(PWM_value_M2 > 0){
+      if(PWM_value_L > 0){
         DIRECTIONM2 = LOW;
       } else{
         DIRECTIONM2 = HIGH;
@@ -271,13 +306,13 @@ void speedDirectionSet(){
 
 
 
-      PWM_value_M1 = abs(PWM_value_M1);//-6*(8/INPUT_DISTANCE));
-      if (PWM_value_M1 > 255) {
-        PWM_value_M1 = 255;
+      PWM_value_R = abs(PWM_value_R);//-6*(8/INPUT_DISTANCE));
+      if (PWM_value_R > 255) {
+        PWM_value_R = 255;
       }
-      PWM_value_M2 = abs(PWM_value_M2);
-      if (PWM_value_M2 > 255) {
-        PWM_value_M2 = 255;
+      PWM_value_L = abs(PWM_value_L);
+      if (PWM_value_L > 255) {
+        PWM_value_L = 255;
       }
      
       
@@ -285,32 +320,55 @@ void speedDirectionSet(){
       //WRITES THE SPEED AND DIRECTIONS TO THE MOTORS
      
       double bound = 100;
-      if(PWM_value_M1 != 0) {
-        PWM_value_M1 = ((double)PWM_value_M1)/(255)*(255-bound)+bound;
+      if(PWM_value_R != 0) {
+        PWM_value_R = ((double)PWM_value_R)/(255)*(255-bound)+bound;
         
       }
-      if(PWM_value_M2 != 0) {
+      if(PWM_value_L != 0) {
         if(STRAIGHT) {
-          PWM_value_M2 *= 0.923;
+          PWM_value_L *= 0.923;
         }
-        PWM_value_M2 = ((double)PWM_value_M2)/(255)*(255-bound)+bound;
+        PWM_value_L = ((double)PWM_value_L)/(255)*(255-bound)+bound;
       }  
      
       //enc_last = left.read();
       digitalWrite(M1Dir, DIRECTIONM1); //
-      analogWrite(M1Speed, PWM_value_M1 );//PWM_value, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
+      analogWrite(M1Speed, PWM_value_R );//PWM_value_, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
       digitalWrite(M2Dir, DIRECTIONM2);
-      analogWrite(M2Speed, PWM_value_M2);//PWM_value, WHEEL ON LEFT SIDE IF LOOKING FROM BACK
-      //Serial.println(PWM_value);
+      analogWrite(M2Speed, PWM_value_L);//PWM_value_, WHEEL ON LEFT SIDE IF LOOKING FROM BACK
+      //Serial.println(PWM_value_);
      
 }
 
 void turnInPlace(double angle){ //TODO: Take input and turn that much
+  double phiStart = phi;
+  while(phi - phiStart < angle + 10 ){ //10 is error
+    if(millis() % 10 == 0){
+      update_position();
+      intializeAngleVel();
+      
+      errorPhi = phiStart + angle - phi;
+             
+      desAngVel = errorPhi / samplingRate;  
   
+      errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
+      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong; //THIS WAS 7 abs(errorDis + errorPhi)
+  
+      barVoltage = errorForVel * Kp/2;
+      deltaVoltage = errorAngVel * Kp;     
+     
+      PWM_value_L = ((barVoltage + deltaVoltage) / 2);
+      PWM_value_R = ((barVoltage - deltaVoltage) / 2);
+  
+      speedDirectionSet();
+    }
+  }
 }
 
 void moveForward(double ft){ //TODO: Take input and move forward that much
-  while(PWM_value_M2 || PWM_value_M1){
+  
+  while(PWM_value_L || PWM_value_R){
+    update_position();
     intializeAngleVel();
     
     errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
@@ -322,8 +380,8 @@ void moveForward(double ft){ //TODO: Take input and move forward that much
     barVoltage = errorForVel * Kp/2;
     deltaVoltage = errorAngVel * Kp;
    
-    PWM_value_M2 = ((barVoltage + deltaVoltage) / 2);
-    PWM_value_M1 = abs((barVoltage - deltaVoltage) / 2);
+    PWM_value_L = ((barVoltage + deltaVoltage) / 2);
+    PWM_value_R = abs((barVoltage - deltaVoltage) / 2);
     
   }
 }
@@ -376,9 +434,9 @@ void testPrint(){
         Serial.print('\t');
         Serial.print(y);
         Serial.print('\t');
-        Serial.print(PWM_value_M1);
+        Serial.print(PWM_value_R);
         Serial.print('\t');
-        Serial.print(PWM_value_M2);
+        Serial.print(PWM_value_L);
         Serial.print('\t');
         Serial.print(left.read());
         Serial.print('\t');
