@@ -94,16 +94,19 @@ double deltaVoltage = 0.0;
 double samplingRate = 0.01;// in seconds, 10 milliseconds
 double lastTime = 0;
 double hamburger = 0;
-double adjustVariable = 0 ;
+double timer = 0;
 double oneChange = 0;
 double twoChange = 0;
-double angStrong = 8;
-bool noVision = false;
+double angStrong = 1;
 
 double horizontalAngle = 0;
 double shiftAngle = 0;
+double INPUT_DISTANCE = 0.5;
+double INPUT_ANGLE = 0;
 
-int INPUT_DISTANCE = 0;
+bool Vision = false;
+bool halt = false;
+
 
 //double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*10)* PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
 double desired_angle = (INPUT_ANGLE) * PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
@@ -138,49 +141,56 @@ void setup() {
 }
 
 void loop() {
-  
     update_position();// UPDATES THE R VALUE WHICH TELLS IT HOW FAR IT HAS DRIVEN
+
        
     if ( millis() % 10 == 0){
       intializeAngleVel();
       if(Rotate) {
         rotate(-1);
-        
-      } else {
-        PWM_value_R = 0;
-        PWM_value_L = 0;
       }
-//      if(Forward) {
-          if (errorDis < 0.1 && noVision){
-//          desDir = r + 1; //should only happen once until it reaches its place of rest
-          }
-//      }
-//      if(AlignH) {
-//        alignParallel();
-//      }
+
       if(AlignS) {
-        //alignCenter();
-        turnInPlace(shiftAngle); // this angle can be whatever we need it to be, and thiis function should work for either hor or shift
+        //alignCenter(); horizontalAngle
+        if(abs(shiftAngle) > 3*toRad && shiftAngle != 100) {
+          update_position();
+          //intializeAngleVel();
+          // Set errorPhi
+          errorPhi = shiftAngle;
+          
+          // Set Desired Velocities
+          desAngVel = errorPhi / samplingRate; 
+        
+          // Set error values
+          errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2;
+        
+          barVoltage = 0;
+          deltaVoltage = errorAngVel * Kp * angStrong;     
+      
+        } else {
+          Forward = true;
+          angStrong = 8;
+        }
+        //turnInPlace(shiftAngle); // shiftAngle
       }
-      
-      //desForVel = 3; //THIS IS A RANDOM VALUE, could include a different forward velocity in each function
-      
-//      if(errorHorizontal > 3 || errorHorizontal < -3){
-//      desForVel = 2;
-//      alignCenter();
-//      } else{
-//      desForVel = 4;
-//      alignParallel();
-//      }      
-      //This guy makes the thing rotate forever
-//      if(RotateForever){
-//        rotate(-1);
-//      }else{
-//        PWM_value_R = 0;
-//        PWM_value_L = 0;
-//      }
-      speedDirectionSet(); 
+      if(Forward) {
+          errorDis = (desDis - r);
+          desForVel = errorDis / samplingRate;
+          errorForVel = desForVel - radius*(angVelOne + angVelTwo)/4;
+          barVoltage = errorForVel * Kp/2;
+           if (Vision){
+               desDis = r + 1; //should only happen once until it reaches its place of rest
+          }
+          
+      }
+
+      if (!Rotate) {
+        PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
+        PWM_value_R = ((barVoltage - deltaVoltage) / 2);
+      }
       printTest(); 
+      speedDirectionSet(); 
+      
     }
    
     
@@ -199,8 +209,8 @@ void update_position(){ //Updates position for localization
 }
 
 void rotate(int direct){
-  PWM_value_R = 20*direct;
-  PWM_value_L = -20*direct;
+  PWM_value_R = 1*direct;
+  PWM_value_L = -1*direct;
   
 //        if(RotateForever){
 //        //if (millis() % 100 == 0){
@@ -235,41 +245,11 @@ void intializeAngleVel(){
       lastPO = left.theta();
 }
 
-void alignCenter(){
-      errorPhi = (0 - (shiftAngle));
-           
-      desAngVel = errorPhi / samplingRate;
-      desForVel = 0;  
-
-      errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong; //THIS WAS 7 abs(errorDis + errorPhi)
-
-      barVoltage = errorForVel * Kp/2;
-      deltaVoltage = errorAngVel * Kp;     
-     
-      PWM_value_L = ((barVoltage + deltaVoltage) / 2);
-      PWM_value_R = ((barVoltage - deltaVoltage) / 2);
-}
-
-void alignParallel(){
-      errorHorizontal = (90 - (horizontalAngle));
-  
-      desAngVel = errorHorizontal / samplingRate;  
-
-      errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong; //THIS WAS 7 abs(errorDis + errorPhi)
-
-      barVoltage = errorForVel * Kp/2;
-      deltaVoltage = errorAngVel * Kp;     
-     
-      PWM_value_L = ((barVoltage + deltaVoltage) / 4);
-      PWM_value_R = ((barVoltage - deltaVoltage) / 4);
-}
-
 // Gets Data from Pi
 void receiveData(int byteCount) {
       Rotate = false;
       AlignS = true;
+      halt = false;
 
       // Array of Inputs from Pi
       int arrayOfInputs[4] = {0};
@@ -278,9 +258,18 @@ void receiveData(int byteCount) {
         arrayOfInputs[i] = Wire.read();
       }
       //Set Horizontal Angle
-      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]) * toRad / 100;
+      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]) * toRad;
       //Set Shift Angle
-      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad / 100;
+      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad;
+      if (arrayOfInputs[2] == 100){
+        if(Vision && r > 1){
+          halt = true;
+        }
+        Vision = false;
+        
+      } else{
+        Vision = true;
+      }
      
 }
 
@@ -309,14 +298,25 @@ void speedDirectionSet(){
       }
      
       // Scales PWM to lowest moving motor value
-      double bound = 150;
+      double bound = 70;
+      if (Rotate) {
+        bound = 70;
+      }
       if(PWM_value_R != 0) {
         PWM_value_R = ((double)PWM_value_R)/(255)*(255-bound)+bound;
       }
       if(PWM_value_L != 0) {
         PWM_value_L = ((double)PWM_value_L)/(255)*(255-bound)+bound;
       }  
-     
+
+     if(halt){
+      PWM_value_R = 0;
+      PWM_value_L = 0;
+      int tmp = r+1;
+      while (tmp - r > 0) {
+        update_position();
+      }
+     }
       // Writes values to motors
       digitalWrite(M1Dir, DIRECTIONM1); //
       analogWrite(M1Speed, PWM_value_R );//PWM_value_, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
@@ -327,30 +327,24 @@ void speedDirectionSet(){
 
 void turnInPlace(double angle){ //TODO: Take input and turn that much
   if(abs(angle) > 3*toRad) {
-    update_position();
-    intializeAngleVel();
+    //update_position();
+    //intializeAngleVel();
     // Set errorPhi
-    errorDis = (desDis - r);//Need desDis for forward movement, could use a flah to switch between the errorForVel being 0 or what it needs to be.
     errorPhi = angle;
     
     // Set Desired Velocities
-    // desForVel = 0;
-    desForVel = errorDis / samplingRate;
     desAngVel = errorPhi / samplingRate;  
-    
+  
     // Set error values
-    errorForVel = 0; //used to be 0
-    if(Fprward){
-      errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-    }
     errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2;
   
-    barVoltage = errorForVel * Kp/2;
+    barVoltage = 0;
     deltaVoltage = errorAngVel * Kp;     
    
-    PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
-    PWM_value_R = ((barVoltage - deltaVoltage) / 2);
-  } 
+
+  } else {
+    Forward = true;
+  }
   if (angle == 100) {
     PWM_value_L = 0;
     PWM_value_R = 0;
@@ -358,26 +352,32 @@ void turnInPlace(double angle){ //TODO: Take input and turn that much
 }
 
 
-void moveForward(double ft){ //TODO: Take input and move forward that much
+void moveForward(double ft){
+  errorDis = (desDis - r);
+  desForVel = errorDis / samplingRate;
+  errorForVel = desForVel - radius*(angVelOne + angVelTwo)/4;
+  barVoltage = errorForVel * Kp/2;
+ 
+}//TODO: Take input and move forward that much
   
-  while(PWM_value_L || PWM_value_R){
-    update_position();
-    intializeAngleVel();
-    
-    errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-    errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong;
-
-    if(errorDis < 0.5){
-      angStrong = 1;
-    }
-    barVoltage = errorForVel * Kp/2;
-    deltaVoltage = errorAngVel * Kp;
-   
-    PWM_value_L = ((barVoltage + deltaVoltage) / 2);
-    PWM_value_R = abs((barVoltage - deltaVoltage) / 2);
-    
-  }
-}
+//  while(PWM_value_L || PWM_value_R){
+//    update_position();
+//    intializeAngleVel();
+//    
+//    errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
+//    errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong;
+//
+//    if(errorDis < 0.5){
+//      angStrong = 1;
+//    }
+//    barVoltage = errorForVel * Kp/2;
+//    deltaVoltage = errorAngVel * Kp;
+//   
+//    PWM_value_L = ((barVoltage + deltaVoltage) / 2);
+//    PWM_value_R = abs((barVoltage - deltaVoltage) / 2);
+//    
+//  }
+//}
 
 void printTest(){
   if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired

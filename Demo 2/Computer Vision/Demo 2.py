@@ -46,9 +46,8 @@ def sendSecondary(angleH, inFrame, angle):
         signS = 1
     if angleH < 0:
         signH = 1
-    array = [round(abs(angleH)*100), signH, round(abs(angle)*100), signS]
+    array = [round(abs(angleH)), signH, round(abs(angle)), signS]
     print("Horizontal Angle: %d   Shift Angle: %d" % ((pow(-1, array[1]))*array[0], (pow(-1, array[3]))*array[2]))
-    
     try:
         bus.write_i2c_block_data(address, 0, array)
     except:
@@ -97,7 +96,7 @@ def findangle(x, center):
     fov = 53.5
     if x != -1:
         #Find the angle relative to the center of the image to rotate the camera
-        phi = round(fov/2*((center-x)/center), 2)
+        phi = round(fov/2*((center-x)/center), 4)
         global phiOld
         global newValues
         if not (phi <= phiOld + 1 and phi >= phiOld - 1):
@@ -106,6 +105,7 @@ def findangle(x, center):
             #writeNumber(phi)
             #lcd.message = "Angle: " + str(phi)
             #print(phi)
+        phiOld = phi
     return phiOld
 
 '''
@@ -116,7 +116,7 @@ Output:    None
 '''
 def calibrate(camera):
     camera.resolution = (320, 240) # Set resolution
-    #camera.iso = 50               # Fix iso (100/200 for light, 300/400 for dark)
+    camera.iso = 50               # Fix iso (100/200 for light, 300/400 for dark)
     camera.framerate = 24          # Fix framerate
     sleep(2)                  # Allow camera to adjust
     #camera.shutter_speed = camera.exposure_speed
@@ -156,7 +156,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     # H: 108  S: 255  V: 126 using displayColors.py
     # Multiple colors can be added to boundaries, only one is used
     bound = 15
-    boundaries = [([101-bound, 50, 50], [101+bound, 255, 255])]
+    boundaries = [([85, 40, 50], [101+bound, 255, 255])]
     #boundaries = [([95, 100, 20], [125,255,255])]
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)  # Convert to HSV
     mask = np.zeros((frame.shape[0], frame.shape[1]), dtype="uint8")
@@ -219,8 +219,9 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
             if left_point[1] > right_point[0]:
                 angle = -angle
             if not (angle <= angleOld + 1 and angle >= angleOld - 1):
-                angleOld = round(angle, 2)
+                angleOld = round(angle, 4)
                 newValues = True
+            angleOld = angle
             
             M = cv.moments(largest_item)
             #if M["m00"] >  0: 
@@ -232,9 +233,10 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     else:
         found = True
     phi = findangle(x, frame.shape[1]/2)
-    #if newValues is True:
+    if newValues is True:
+        sendSecondary(angleOld, found, phiOld)
+    #if found == True:
         #sendSecondary(angleOld, found, phiOld)
-    sendSecondary(angle, found, phi)
     newValues = False
     cv.imshow("Frame", frame)
     cv.imshow("Threashold", th)
