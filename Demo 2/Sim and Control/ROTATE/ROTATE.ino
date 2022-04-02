@@ -98,10 +98,12 @@ double adjustVariable = 0 ;
 double oneChange = 0;
 double twoChange = 0;
 double angStrong = 8;
+bool noVision = false;
 
 double horizontalAngle = 0;
 double shiftAngle = 0;
 
+int INPUT_DISTANCE = 0;
 
 //double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*10)* PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
 double desired_angle = (INPUT_ANGLE) * PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
@@ -149,14 +151,16 @@ void loop() {
         PWM_value_L = 0;
       }
 //      if(Forward) {
-//        
+          if (errorDis < 0.1 && noVision){
+//          desDir = r + 1; //should only happen once until it reaches its place of rest
+          }
 //      }
 //      if(AlignH) {
 //        alignParallel();
 //      }
       if(AlignS) {
         //alignCenter();
-        turnInPlace(shiftAngle);
+        turnInPlace(shiftAngle); // this angle can be whatever we need it to be, and thiis function should work for either hor or shift
       }
       
       //desForVel = 3; //THIS IS A RANDOM VALUE, could include a different forward velocity in each function
@@ -326,14 +330,19 @@ void turnInPlace(double angle){ //TODO: Take input and turn that much
     update_position();
     intializeAngleVel();
     // Set errorPhi
+    errorDis = (desDis - r);//Need desDis for forward movement, could use a flah to switch between the errorForVel being 0 or what it needs to be.
     errorPhi = angle;
     
     // Set Desired Velocities
-    desForVel = 0;
+    // desForVel = 0;
+    desForVel = errorDis / samplingRate;
     desAngVel = errorPhi / samplingRate;  
-  
+    
     // Set error values
-    errorForVel = 0;
+    errorForVel = 0; //used to be 0
+    if(Fprward){
+      errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
+    }
     errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2;
   
     barVoltage = errorForVel * Kp/2;
