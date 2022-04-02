@@ -46,7 +46,7 @@ def sendSecondary(angleH, inFrame, angle):
         signS = 1
     if angleH < 0:
         signH = 1
-    array = [round(abs(angleH)), signH, round(abs(angle)), signS]
+    array = [round(abs(angleH)*100), signH, round(abs(angle)*100), signS]
     print("Horizontal Angle: %d   Shift Angle: %d" % ((pow(-1, array[1]))*array[0], (pow(-1, array[3]))*array[2]))
     
     try:
@@ -232,8 +232,9 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     else:
         found = True
     phi = findangle(x, frame.shape[1]/2)
-    if newValues is True:
-        sendSecondary(angleOld, found, phiOld)
+    #if newValues is True:
+        #sendSecondary(angleOld, found, phiOld)
+    sendSecondary(angle, found, phi)
     newValues = False
     cv.imshow("Frame", frame)
     cv.imshow("Threashold", th)
