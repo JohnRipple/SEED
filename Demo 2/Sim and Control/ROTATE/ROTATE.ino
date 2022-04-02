@@ -11,9 +11,9 @@
  * connect + on encoder to the 5V on the arduino
  *
  */
- #include <Wire.h>
- #include <Encoder.h>
- #define SLAVE_ADDRESS 0x04
+#include <Wire.h>
+#include <Encoder.h>
+#define SLAVE_ADDRESS 0x04
 int label = 0;
 // ============== Localization Initialization ==============
 const double meterToFeet = 3.28084;
@@ -21,6 +21,7 @@ const double N_per_Rotation = 3200; // in ticks
 const double radius = meterToFeet*0.145/2; //in meters
 const double robot_width = meterToFeet*0.29; //in meters (Needs to be measured from wheel to wheel)
 const double enc_to_rad = 2*PI/N_per_Rotation; //in radian / tick
+const double toRad = PI/180;
 
 bool duh = false;
 int enc_last = 0;
@@ -148,9 +149,7 @@ void loop() {
     update_position();// UPDATES THE R VALUE WHICH TELLS IT HOW FAR IT HAS DRIVEN
        
     if ( millis() % 10 == 0){
-      
       intializeAngleVel();
-
       if(Rotate) {
         rotate(-1);
       }
@@ -158,11 +157,9 @@ void loop() {
         
       }
       if(AlignH) {
-
         alignParallel();
-        
       }
-      if(AlignS ) {
+      if(AlignS) {
         //alignCenter();
         turnInPlace(shiftAngle);
       }
@@ -269,25 +266,26 @@ void alignParallel(){
       PWM_value_R = ((barVoltage - deltaVoltage) / 4);
 }
 
+// Gets Data from Pi
 void receiveData(int byteCount) {
       Rotate = false;
       AlignS = true;
-      nextState = 1;
-      state = 4;
+
+      // Array of Inputs from Pi
       int arrayOfInputs[4] = {0};
       Wire.read();
       for(int i = 0; i < 4; i++) {
-        arrayOfInputs[i] = Wire.read(); //Sets the quadrant to the input from the pi. The -1 converts the signal to the desired quadrant
+        arrayOfInputs[i] = Wire.read();
       }
-      //horiztonal
-      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]) * PI/180;
-      //shift
-      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* PI/180;
+      //Set Horizontal Angle
+      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]) * toRad;
+      //Set Shift Angle
+      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad;
      
 }
 
 void speedDirectionSet(){
-  //CHOOSES DIRECTION     
+      //CHOOSES DIRECTION     
       if(PWM_value_R > 0){
         DIRECTIONM1 = HIGH;
       } else{
@@ -300,8 +298,7 @@ void speedDirectionSet(){
         DIRECTIONM2 = HIGH;
       }
 
-
-
+      //Makes sure PWM is within 0 to 255
       PWM_value_R = abs(PWM_value_R);//-6*(8/INPUT_DISTANCE));
       if (PWM_value_R > 255) {
         PWM_value_R = 255;
@@ -311,64 +308,53 @@ void speedDirectionSet(){
         PWM_value_L = 255;
       }
      
-      
-      //Something should probably be scaled for the minimum PWM needed to move the motor
-      //WRITES THE SPEED AND DIRECTIONS TO THE MOTORS
-     
+      // Scales PWM to lowest moving motor value
       double bound = 100;
       if(PWM_value_R != 0) {
         PWM_value_R = ((double)PWM_value_R)/(255)*(255-bound)+bound;
-        
       }
       if(PWM_value_L != 0) {
-        if(STRAIGHT) {
-          PWM_value_L *= 0.923;
-        }
         PWM_value_L = ((double)PWM_value_L)/(255)*(255-bound)+bound;
       }  
      
-      //enc_last = left.read();
+      // Writes values to motors
       digitalWrite(M1Dir, DIRECTIONM1); //
       analogWrite(M1Speed, PWM_value_R );//PWM_value_, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
       digitalWrite(M2Dir, DIRECTIONM2);
       analogWrite(M2Speed, PWM_value_L);//PWM_value_, WHEEL ON LEFT SIDE IF LOOKING FROM BACK
-      //Serial.println(PWM_value_);
      
 }
-double phiStart = -100;
+
 void turnInPlace(double angle){ //TODO: Take input and turn that much
-  if(phiStart == -100) {
-    phiStart = phi;
-  }
+
 //  if(abs(phi - phiStart) < abs(angle) + 5*PI/180){//10 is error
-  if(abs(angle) > 3*PI/180) {
+  if(abs(angle) > 3*toRad) {
     
       update_position();
       intializeAngleVel();
     
+      // Set errorPhi
+      errorPhi = 0 - angle;
+      
+      // Set Desired Velocities
       desForVel = 0;
-      errorPhi = phiStart + angle - phi;
-             
       desAngVel = errorPhi / samplingRate;  
   
-      errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong; //THIS WAS 7 abs(errorDis + errorPhi)
+      // Set error values
+      errorForVel = 0;
+      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2;
   
       barVoltage = errorForVel * Kp/2;
       deltaVoltage = errorAngVel * Kp;     
      
       PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
       PWM_value_R = ((barVoltage - deltaVoltage) / 2);
-//      Serial.println(phi);
-//      Serial.println(phiStart);
-      
-      //speedDirectionSet();
+
       printTest();
     
-  } else {
-      phiStart = -100;
-    }
+  } 
 }
+
 
 void moveForward(double ft){ //TODO: Take input and move forward that much
   
