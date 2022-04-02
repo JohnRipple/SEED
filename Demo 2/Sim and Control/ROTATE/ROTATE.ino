@@ -278,9 +278,9 @@ void receiveData(int byteCount) {
         arrayOfInputs[i] = Wire.read();
       }
       //Set Horizontal Angle
-      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]) * toRad;
+      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]) * toRad / 100;
       //Set Shift Angle
-      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad;
+      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad / 100;
      
 }
 
