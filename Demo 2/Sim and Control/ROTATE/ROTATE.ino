@@ -1,4 +1,4 @@
-/* Author: Andrew Samson 3/02/2022
+/* Author: Andrew Samson, John Ripple, Michael Klima, Josh Lee 3/02/2022
  *  
  * Description: This code is used to keep track of the position and orientation (radians off of x-axis)
  * of the robot relative to its starting point (0,0)
@@ -72,17 +72,14 @@ int AlignH = 0;
 int AlignS = 0;
 
 int ONCE = 0;
-//double voltage = 0;
-//double presentVoltage = 8.0; //WHYYYYYYYYYYYYYYYYYYYYYYY
+
 int PWM_value_R = 0; // DONT FORGET ABOUT THIS _____________________________________________________________________________________________________
 int PWM_value_L = 0;
-// double error = 0;
+
 double errorDis = 0;
 double errorPhi = 0;
 double curDis = 0.0;
-//IN FEET
-//double circum = PI*radius*2;
-//double perClick = circum /3200;
+
 double lastPT = 0.0;
 double lastPO = 0.0;
 double angVelOne = 0.0;
@@ -105,12 +102,6 @@ double angStrong = 8;
 double horizontalAngle = 0;
 double shiftAngle = 0;
 
-
-bool RotateForever = true;
-//BELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOWWWWW<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-double INPUT_ANGLE = 0;// ENTERED IN DEGREES
-double INPUT_DISTANCE = 0.5;//ENTERED IN FEET
-//ABOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVEEEEEEE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 //double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*10)* PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
 double desired_angle = (INPUT_ANGLE) * PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
@@ -152,13 +143,17 @@ void loop() {
       intializeAngleVel();
       if(Rotate) {
         rotate(-1);
-      }
-      if(Forward) {
         
+      } else {
+        PWM_value_R = 0;
+        PWM_value_L = 0;
       }
-      if(AlignH) {
-        alignParallel();
-      }
+//      if(Forward) {
+//        
+//      }
+//      if(AlignH) {
+//        alignParallel();
+//      }
       if(AlignS) {
         //alignCenter();
         turnInPlace(shiftAngle);
@@ -181,8 +176,9 @@ void loop() {
 //        PWM_value_L = 0;
 //      }
       speedDirectionSet(); 
+      printTest(); 
     }
-   //printTest(); 
+   
     
    //delay(5);
 }
@@ -309,7 +305,7 @@ void speedDirectionSet(){
       }
      
       // Scales PWM to lowest moving motor value
-      double bound = 100;
+      double bound = 150;
       if(PWM_value_R != 0) {
         PWM_value_R = ((double)PWM_value_R)/(255)*(255-bound)+bound;
       }
@@ -326,33 +322,30 @@ void speedDirectionSet(){
 }
 
 void turnInPlace(double angle){ //TODO: Take input and turn that much
-
-//  if(abs(phi - phiStart) < abs(angle) + 5*PI/180){//10 is error
   if(abs(angle) > 3*toRad) {
+    update_position();
+    intializeAngleVel();
+    // Set errorPhi
+    errorPhi = angle;
     
-      update_position();
-      intializeAngleVel();
-    
-      // Set errorPhi
-      errorPhi = 0 - angle;
-      
-      // Set Desired Velocities
-      desForVel = 0;
-      desAngVel = errorPhi / samplingRate;  
+    // Set Desired Velocities
+    desForVel = 0;
+    desAngVel = errorPhi / samplingRate;  
   
-      // Set error values
-      errorForVel = 0;
-      errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2;
+    // Set error values
+    errorForVel = 0;
+    errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2;
   
-      barVoltage = errorForVel * Kp/2;
-      deltaVoltage = errorAngVel * Kp;     
-     
-      PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
-      PWM_value_R = ((barVoltage - deltaVoltage) / 2);
-
-      printTest();
-    
+    barVoltage = errorForVel * Kp/2;
+    deltaVoltage = errorAngVel * Kp;     
+   
+    PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
+    PWM_value_R = ((barVoltage - deltaVoltage) / 2);
   } 
+  if (angle == 100) {
+    PWM_value_L = 0;
+    PWM_value_R = 0;
+  }
 }
 
 

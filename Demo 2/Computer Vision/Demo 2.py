@@ -181,6 +181,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     if len(contours) < 1:
         if found == True:
             print("No Markers Found")
+            sendSecondary(100, False, 100)
     else:
         # Create bounding box for the largest contour found 
         largest_item = max(contours, key=cv.contourArea)
