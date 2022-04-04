@@ -157,7 +157,7 @@ int flag = 0;
           update_position();
           //intializeAngleVel();
           // Set errorPhi
-          errorPhi = shiftAngle;
+          errorPhi = useAngle;
           
           // Set Desired Velocities
           desAngVel = errorPhi / samplingRate; 
@@ -226,10 +226,13 @@ void rotate(int direct){
 }
 
 // Gets Data from Pi
+bool onTape = false;
+double useAngle = 0;
 void receiveData(int byteCount) {
       Rotate = false;
       AlignS = true;
       halt = false;
+      
       //Serial.println("Data recieved");
       // Array of Inputs from Pi
       int arrayOfInputs[4] = {0};
@@ -254,10 +257,17 @@ void receiveData(int byteCount) {
         Serial.println("Message recieved \n");
         Vision = false;
         
-      } else{
+      } else if(arrayOfInputs[2] == 101){
+        onTape = true;
+      }else{
         Vision = true;
       }
-     
+     if(onTape){
+       useAngle = horizontalAngle
+     }else{
+       useAngle = shiftAngle;
+     }
+  
 }
 
 void speedDirectionSet(){
