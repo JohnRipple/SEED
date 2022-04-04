@@ -40,6 +40,7 @@ def resize(img):
 
 
 #Sets up camera
+'''
 camera = picamera.PiCamera()
 size = (320, 240)
 camera.resolution = size
@@ -55,12 +56,25 @@ camera.awb_mode = "off"
 camera.awb_gains = (343/256, 101/64)
 
 rawCapture = PiRGBArray(camera, size)
+'''
 cv.namedWindow('image')
 cv.setMouseCallback('image', getColor)
 print("t takes a picture, s saves, m changes colorspace, r retakes picture")
-
+'''
+camera = PiCamera() # Initialize PyCamera and calibrate
+rawCapture = PiRGBArray(camera)
+calibrate(camera)
+'''
+cap = cv.VideoCapture(0)
+cap.set(3, 320)                               # Set Camera width
+cap.set(4, 240)                               # Set Camera height
+while True:
+    '''
 for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     image = framein.array
+    '''
+    ret,image= cap.read()
+
     #Creates a window that can be used with a mouse
     cv.imshow('image', image)
     #Checks what the keyboard presses are while in the window
@@ -88,5 +102,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
                 cv.destroyAllWindows()
                 exit(0)
             
-    rawCapture.truncate(0)
-camera.close()
+    #rawCapture.truncate(0)
+#camera.close()
+cap.release()
+
