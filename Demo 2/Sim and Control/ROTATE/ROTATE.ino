@@ -106,6 +106,7 @@ double INPUT_ANGLE = 0;
 
 bool Vision = false;
 bool halt = false;
+bool halt2 = false;
 
 
 //double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*10)* PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
@@ -149,7 +150,7 @@ void loop() {
       if(Rotate) {
         rotate(-1);
       }
-
+int flag = 0;
       if(AlignS) {
         //alignCenter(); horizontalAngle
         if(abs(shiftAngle) > 3*toRad && shiftAngle != 100) {
@@ -166,10 +167,10 @@ void loop() {
         
           barVoltage = 0;
           deltaVoltage = errorAngVel * Kp * angStrong;     
-      
+          flag = 1;
         } else {
           Forward = true;
-          angStrong = 8;
+          angStrong = 5; //was 8
         }
         //turnInPlace(shiftAngle); // shiftAngle
       }
@@ -183,7 +184,9 @@ void loop() {
           }
           
       }
-
+      if(flag == 1){
+        //barVoltage = 0;
+      }
       if (!Rotate) {
         PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
         PWM_value_R = ((barVoltage - deltaVoltage) / 2);
@@ -195,17 +198,6 @@ void loop() {
    
     
    //delay(5);
-}
-
-void update_position(){ //Updates position for localization
-  double d_r = right.displacement(); //sets a constant position throughout function
-  double d_l = left.displacement();
- 
-  x = x + cos(phi)*(d_r + d_l) / 2; //updates x postion
-  y = y + sin(phi)*(d_r + d_l) / 2; //updates y position
-  r = sqrt(x*x + y*y); // upadates r / distance traveled
-  
-  phi = (right.read() - left.read()) * enc_to_rad * radius / robot_width; //updates orientation
 }
 
 void rotate(int direct){
@@ -233,24 +225,12 @@ void rotate(int direct){
   
 }
 
-void intializeAngleVel(){
-      //LEFT WHEEL DEFINED AS THE ONE, RIGHT WHEEL DEFINED AS THE TWO
-      hamburger = millis() - lastTime;
-      oneChange = left.theta() - lastPO;
-      twoChange = right.theta() - lastPT;
-      angVelOne = (oneChange) /(hamburger/1000);
-      angVelTwo = (twoChange) / (hamburger/1000);
-      lastTime = millis();
-      lastPT = right.theta();
-      lastPO = left.theta();
-}
-
 // Gets Data from Pi
 void receiveData(int byteCount) {
       Rotate = false;
       AlignS = true;
       halt = false;
-
+      //Serial.println("Data recieved");
       // Array of Inputs from Pi
       int arrayOfInputs[4] = {0};
       Wire.read();
@@ -264,7 +244,14 @@ void receiveData(int byteCount) {
       if (arrayOfInputs[2] == 100){
         if(Vision && r > 1){
           halt = true;
+          Serial.println("Stopping");
+        }else{
+          Rotate = true;
         }
+        if(Rotate){
+          Serial.println("Still rotating");
+        }
+        Serial.println("Message recieved \n");
         Vision = false;
         
       } else{
@@ -298,7 +285,7 @@ void speedDirectionSet(){
       }
      
       // Scales PWM to lowest moving motor value
-      double bound = 70;
+      double bound = 60;
       if (Rotate) {
         bound = 70;
       }
@@ -310,12 +297,17 @@ void speedDirectionSet(){
       }  
 
      if(halt){
+      
+      //if (!halt2) {
+        int tmp = r+1;
+        Serial.println("Halt2");
+        while (tmp - r > 0) {
+          update_position();
+        }
+        //halt2 = true;
+      //}
       PWM_value_R = 0;
       PWM_value_L = 0;
-      int tmp = r+1;
-      while (tmp - r > 0) {
-        update_position();
-      }
      }
       // Writes values to motors
       digitalWrite(M1Dir, DIRECTIONM1); //
@@ -378,6 +370,29 @@ void moveForward(double ft){
 //    
 //  }
 //}
+
+void update_position(){ //Updates position for localization
+  double d_r = right.displacement(); //sets a constant position throughout function
+  double d_l = left.displacement();
+ 
+  x = x + cos(phi)*(d_r + d_l) / 2; //updates x postion
+  y = y + sin(phi)*(d_r + d_l) / 2; //updates y position
+  r = sqrt(x*x + y*y); // upadates r / distance traveled
+  
+  phi = (right.read() - left.read()) * enc_to_rad * radius / robot_width; //updates orientation
+}
+
+void intializeAngleVel(){
+      //LEFT WHEEL DEFINED AS THE ONE, RIGHT WHEEL DEFINED AS THE TWO
+      hamburger = millis() - lastTime;
+      oneChange = left.theta() - lastPO;
+      twoChange = right.theta() - lastPT;
+      angVelOne = (oneChange) /(hamburger/1000);
+      angVelTwo = (twoChange) / (hamburger/1000);
+      lastTime = millis();
+      lastPT = right.theta();
+      lastPO = left.theta();
+}
 
 void printTest(){
   if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired

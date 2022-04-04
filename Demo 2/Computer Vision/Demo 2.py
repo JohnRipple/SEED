@@ -26,12 +26,13 @@ def writeNumber(value):
 # initialize I2C bus
 i2c = board.I2C()
 
+'''
 # lcd settings
 lcd_columns = 16
 lcd_rows = 2
 lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
 lcd.clear()
-
+'''
 
 
 # -- Function Declarations --
@@ -116,7 +117,7 @@ Output:    None
 '''
 def calibrate(camera):
     camera.resolution = (320, 240) # Set resolution
-    camera.iso = 50               # Fix iso (100/200 for light, 300/400 for dark)
+    #camera.iso = 50               # Fix iso (100/200 for light, 300/400 for dark)
     camera.framerate = 24          # Fix framerate
     sleep(2)                  # Allow camera to adjust
     #camera.shutter_speed = camera.exposure_speed
@@ -127,6 +128,7 @@ def calibrate(camera):
     camera.awb_gains = (343/256, 101/64)
 
 # -- Main --
+pi = False
 cv.setUseOptimized(True)
 phiOld = 0
 angleOld = 0
@@ -134,19 +136,21 @@ data = np.load('camera_distort_matrices.npz') # Load the Previously found distor
 found = True
 newValues = False
 kernel = np.ones((2,2), np.uint8)
+if pi:
+    camera = PiCamera() # Initialize PyCamera and calibrate
+    rawCapture = PiRGBArray(camera)
+    calibrate(camera)
+else:
+    cap = cv.VideoCapture(0)
+    cap.set(3, 320)                               # Set Camera width
+    cap.set(4, 240)                               # Set Camera height
 
-camera = PiCamera() # Initialize PyCamera and calibrate
-rawCapture = PiRGBArray(camera)
-calibrate(camera)
-'''
-cap = cv.VideoCapture(0)
-cap.set(3, 320)                               # Set Camera width
-cap.set(4, 240)                               # Set Camera height
 while True:
-'''
+    '''
 for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     frame = framein.array
-    #ret,frame= cap.read()
+    '''
+    ret,frame= cap.read()
     
     # Uses previously calculated values to undistort image
     frame = cv.undistort(frame, data['mtx'], data['dist'], None, data['newcameramtx'])
@@ -156,7 +160,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     # H: 108  S: 255  V: 126 using displayColors.py
     # Multiple colors can be added to boundaries, only one is used
     bound = 15
-    boundaries = [([85, 40, 50], [101+bound, 255, 255])]
+    boundaries = [([90, 35, 80], [101+bound, 150, 150])]
     #boundaries = [([95, 100, 20], [125,255,255])]
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)  # Convert to HSV
     mask = np.zeros((frame.shape[0], frame.shape[1]), dtype="uint8")
@@ -241,10 +245,11 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     cv.imshow("Frame", frame)
     cv.imshow("Threashold", th)
     cv.imshow("Original", org)
-    rawCapture.truncate(0)
+    
+    #rawCapture.truncate(0)
     if cv.waitKey(1) & 0xFF == 27:
         break
     
-#cap.release()
+cap.release()
 cv.destroyAllWindows()
 
