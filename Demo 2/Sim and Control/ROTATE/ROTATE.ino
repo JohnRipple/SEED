@@ -23,6 +23,8 @@ const double enc_to_rad = 2*PI/N_per_Rotation; //in radian / tick
 const double toRad = PI/180;
 
 bool duh = false;
+int on = 0;
+
 int enc_last = 0;
 double x = 0; //in meters
 double y = 0; //in meters
@@ -177,7 +179,7 @@ void loop() {
           errorForVel = desForVel - radius*(angVelOne + angVelTwo)/4;
           barVoltage = errorForVel * Kp/2;
           if (Vision){
-               desDis = r + 4; //should only happen once until it reaches its place of rest
+               desDis = r + 3; //should only happen once until it reaches its place of rest
           }
       }
       if (!Rotate) {
@@ -293,8 +295,10 @@ void speedDirectionSet(){
       digitalWrite(M2Dir, DIRECTIONM2);
       analogWrite(M2Speed, PWM_value_L);//PWM_value_, WHEEL ON LEFT SIDE IF LOOKING FROM BACK
   
-      if(halt)
+      if(halt && on == 0){
         victoryScreech();
+        on++;
+      }
      
 }
 
