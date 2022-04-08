@@ -1,14 +1,13 @@
 /* Author: Andrew Samson, John Ripple, Michael Klima, Josh Lee 3/02/2022
  *  
- * Description: This code is used to keep track of the position and orientation (radians off of x-axis)
- * of the robot relative to its starting point (0,0)
+ * Description: This code controls a robots movement based on angle inputs from a rasberry pi.
  *
  * Hardware:
  *
- * connect the clk on the encoder to pins 2 and 3 (interrupt pins)
- * connect the dt on the encoder to pins 5 and 6
- * connect GND on the encoder to GND on the arduino
- * connect + on encoder to the 5V on the arduino
+ * connect the encoder on left wheel to pins 2 and 5 
+ * connect the encoder on right wheel to pins 3 and 6 
+ * connect GND on the wire splitter to GND on the arduino
+ * connect + on wire splitter to the 5V on the arduino
  *
  */
 #include <Wire.h>
@@ -151,7 +150,7 @@ void loop() {
       if(Rotate) {
         rotate(-1);
       }
-int flag = 0;
+
       if(AlignS) {
         if(abs(shiftAngle) > 3*toRad) {
           update_position();
@@ -166,7 +165,7 @@ int flag = 0;
         
           barVoltage = 0;
           deltaVoltage = errorAngVel * Kp * angStrong;     
-          flag = 1;
+          
         } else {
           Forward = true;
           angStrong = 5; //was 8
@@ -177,13 +176,9 @@ int flag = 0;
           desForVel = errorDis / samplingRate;
           errorForVel = desForVel - radius*(angVelOne + angVelTwo)/4;
           barVoltage = errorForVel * Kp/2;
-           if (Vision){
+          if (Vision){
                desDis = r + 4; //should only happen once until it reaches its place of rest
           }
-          
-      }
-      if(flag == 1){
-        //barVoltage = 0;
       }
       if (!Rotate) {
         PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
@@ -304,38 +299,34 @@ void speedDirectionSet(){
 }
 
 void turnInPlace(double angle){ //TODO: Take input and turn that much
-  if(abs(angle) > 3*toRad) {
-    //update_position();
-    //intializeAngleVel();
+  if(abs(shiftAngle) > 3*toRad) {
+    update_position();
     // Set errorPhi
-    errorPhi = angle;
-    
+    errorPhi = shiftAngle;
+
     // Set Desired Velocities
-    desAngVel = errorPhi / samplingRate;  
-  
+    desAngVel = errorPhi / samplingRate; 
+
     // Set error values
     errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2;
-  
-    barVoltage = 0;
-    deltaVoltage = errorAngVel * Kp;     
-   
 
+    barVoltage = 0;
+    deltaVoltage = errorAngVel * Kp * angStrong;     
+          
   } else {
     Forward = true;
-  }
-  if (angle == 100) {
-    PWM_value_L = 0;
-    PWM_value_R = 0;
+    angStrong = 5; //was 8
   }
 }
-
 
 void moveForward(double ft){
   errorDis = (desDis - r);
   desForVel = errorDis / samplingRate;
   errorForVel = desForVel - radius*(angVelOne + angVelTwo)/4;
   barVoltage = errorForVel * Kp/2;
- 
+  if (Vision){
+       desDis = r + 4; //should only happen once until it reaches its place of rest
+  }
 }
 
 void update_position(){ //Updates position for localization
@@ -432,7 +423,7 @@ void victoryScreech(){
   int durr[] = {trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
     trip, trip, trip, trip, trip, qua, qua/2, qua/2, trip,
     trip, trip, trip, trip, trip, qua,trip, trip ,trip , 3*qua};
-  for(int i =1; i < 29; i++){
+  for(int i = 0; i < 29; i++){
       tone(11, notes[i], durr[i]);
       delay(durr[i]);
     }
