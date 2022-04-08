@@ -101,6 +101,7 @@ double angStrong = 1;
 
 double horizontalAngle = 0;
 double shiftAngle = 0;
+int stopSig = 0;
 double INPUT_DISTANCE = 0.5;
 double INPUT_ANGLE = 0;
 
@@ -150,15 +151,40 @@ void loop() {
       if(Rotate) {
         rotate(-1);
       }
-      
+int flag = 0;
       if(AlignS) {
-
-        turnInPlace(useAngle);
+        if(abs(shiftAngle) > 3*toRad) {
+          update_position();
+          // Set errorPhi
+          errorPhi = shiftAngle;
+          
+          // Set Desired Velocities
+          desAngVel = errorPhi / samplingRate; 
+        
+          // Set error values
+          errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2;
+        
+          barVoltage = 0;
+          deltaVoltage = errorAngVel * Kp * angStrong;     
+          flag = 1;
+        } else {
+          Forward = true;
+          angStrong = 5; //was 8
+        }
       }
       if(Forward) {
-        moveForward(1);  
+          errorDis = (desDis - r);
+          desForVel = errorDis / samplingRate;
+          errorForVel = desForVel - radius*(angVelOne + angVelTwo)/4;
+          barVoltage = errorForVel * Kp/2;
+           if (Vision){
+               desDis = r + 4; //should only happen once until it reaches its place of rest
+          }
+          
       }
-      
+      if(flag == 1){
+        //barVoltage = 0;
+      }
       if (!Rotate) {
         PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
         PWM_value_R = ((barVoltage - deltaVoltage) / 2);
@@ -167,56 +193,34 @@ void loop() {
       speedDirectionSet(); 
       
     }
-   
-    
-   //delay(5);
 }
 
 void rotate(int direct){
   PWM_value_R = 1*direct;
   PWM_value_L = -1*direct;
-  
-//        if(RotateForever){
-//        //if (millis() % 100 == 0){
-//        PWM_value_R = 50;
-//        PWM_value_L = 50;
-//        if (errorDis < 0.1){
-//          RotateForever = false;
-//          desired_angle = 90 * PI/180;
-//        }
-//      } else{
-//        if (errorPhi < 0.1)
-//        {
-//          RotateForever = true;
-//          x = 0;
-//          y = 0;
-//          desDis = desDis + 0.1;
-//        }
-//      }
-     
-  
 }
 
 // Gets Data from Pi
-bool onTape = false;
-double useAngle = 0;
 void receiveData(int byteCount) {
       Rotate = false;
       AlignS = true;
-      halt = false;
-      
+      //halt = false;
       //Serial.println("Data recieved");
       // Array of Inputs from Pi
-      int arrayOfInputs[4] = {0};
+      int arrayOfInputs[5] = {0};
       Wire.read();
-      for(int i = 0; i < 4; i++) {
+      for(int i = 0; i < 5; i++) {
         arrayOfInputs[i] = Wire.read();
       }
       //Set Horizontal Angle
-      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]) * toRad;
+      horizontalAngle = arrayOfInputs[0] * pow(-1,arrayOfInputs[1]); // Need to add toRad back in
       //Set Shift Angle
-      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad;
-      if (arrayOfInputs[2] == 100){
+      stopSig = arrayOfInputs[4];
+      if(stopSig == 0) {
+        shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad;
+      }
+      
+      if (stopSig == 1){
         if(Vision && r > 1){
           halt = true;
           Serial.println("Stopping");
@@ -229,17 +233,12 @@ void receiveData(int byteCount) {
         Serial.println("Message recieved \n");
         Vision = false;
         
-      } else if(arrayOfInputs[2] == 101){
-        onTape = true;
-      }else{
+      } else if (stopSig == 0){
         Vision = true;
+      } else if (stopSig == 2) {
+        halt2 = true;
       }
-     if(onTape){
-       useAngle = horizontalAngle
-     }else{
-       useAngle = shiftAngle;
-     }
-  
+     
 }
 
 void speedDirectionSet(){
@@ -279,17 +278,19 @@ void speedDirectionSet(){
       }  
 
      if(halt){
-      
-      //if (!halt2) {
-        int tmp = r+1;
-        Serial.println("Halt2");
+        int tmp = r+0.5;
         while (tmp - r > 0) {
           update_position();
         }
-        //halt2 = true;
-      //}
+
       PWM_value_R = 0;
       PWM_value_L = 0;
+     }
+
+     if(stopSig == 2 || halt2) {
+      PWM_value_R = 0;
+      PWM_value_L = 0;
+      Serial.println("Here");
      }
       // Writes values to motors
       digitalWrite(M1Dir, DIRECTIONM1); //
@@ -300,22 +301,28 @@ void speedDirectionSet(){
 }
 
 void turnInPlace(double angle){ //TODO: Take input and turn that much
-  if(abs(shiftAngle) > 3*toRad && shiftAngle != 100) {
-    update_position();
+  if(abs(angle) > 3*toRad) {
+    //update_position();
+    //intializeAngleVel();
     // Set errorPhi
-    errorPhi = useAngle;
-
+    errorPhi = angle;
+    
     // Set Desired Velocities
-    desAngVel = errorPhi / samplingRate; 
-
+    desAngVel = errorPhi / samplingRate;  
+  
     // Set error values
     errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))/2;
-
+  
     barVoltage = 0;
-    deltaVoltage = errorAngVel * Kp * angStrong;     
+    deltaVoltage = errorAngVel * Kp;     
+   
+
   } else {
     Forward = true;
-    angStrong = 5; //was 8
+  }
+  if (angle == 100) {
+    PWM_value_L = 0;
+    PWM_value_R = 0;
   }
 }
 
@@ -325,30 +332,8 @@ void moveForward(double ft){
   desForVel = errorDis / samplingRate;
   errorForVel = desForVel - radius*(angVelOne + angVelTwo)/4;
   barVoltage = errorForVel * Kp/2;
-  if (Vision){
-   desDis = r + 1; //should only happen once until it reaches its place of rest
-  } 
  
-}//TODO: Take input and move forward that much
-  
-//  while(PWM_value_L || PWM_value_R){
-//    update_position();
-//    intializeAngleVel();
-//    
-//    errorForVel = desForVel - radius*(angVelOne + angVelTwo)/2;
-//    errorAngVel = -(desAngVel - radius*(angVelOne + angVelTwo)/(robot_width))*angStrong;
-//
-//    if(errorDis < 0.5){
-//      angStrong = 1;
-//    }
-//    barVoltage = errorForVel * Kp/2;
-//    deltaVoltage = errorAngVel * Kp;
-//   
-//    PWM_value_L = ((barVoltage + deltaVoltage) / 2);
-//    PWM_value_R = abs((barVoltage - deltaVoltage) / 2);
-//    
-//  }
-//}
+}
 
 void update_position(){ //Updates position for localization
   double d_r = right.displacement(); //sets a constant position throughout function

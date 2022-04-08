@@ -40,15 +40,15 @@ lcd.clear()
 Name:      sendSecondary()
 Function:  Send data from the camera to the arduino and lcd
 '''
-def sendSecondary(angleH, inFrame, angle):
+def sendSecondary(angleH, inFrame, angle, stopSig):
     signS = 0
     signH = 0
     if angle < 0:   
         signS = 1
     if angleH < 0:
         signH = 1
-    array = [round(abs(angleH)), signH, round(abs(angle)), signS]
-    print("Horizontal Angle: %d   Shift Angle: %d" % ((pow(-1, array[1]))*array[0], (pow(-1, array[3]))*array[2]))
+    array = [round(abs(angleH)), signH, round(abs(angle)), signS, stopSig]
+    print("Horizontal Angle: %d   Shift Angle: %d   Stop Signal: %d" % ((pow(-1, array[1]))*array[0], (pow(-1, array[3]))*array[2], stopSig))
     try:
         bus.write_i2c_block_data(address, 0, array)
     except:
@@ -100,7 +100,7 @@ def findangle(x, center):
         phi = round(fov/2*((center-x)/center), 4)
         global phiOld
         global newValues
-        if not (phi <= phiOld + 1 and phi >= phiOld - 1):
+        if not (phi <= phiOld + 0.5 and phi >= phiOld - 0.5):
             phiOld = phi
             newValues = True
             #writeNumber(phi)
@@ -129,6 +129,7 @@ def calibrate(camera):
 
 # -- Main --
 pi = False
+stop = False
 cv.setUseOptimized(True)
 phiOld = 0
 angleOld = 0
@@ -185,10 +186,16 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     if len(contours) < 1:
         if found == True:
             print("No Markers Found")
-            sendSecondary(100, False, 100)
+            if stop == False:
+                sendSecondary(0, False, 0, 1)
     else:
         # Create bounding box for the largest contour found 
         largest_item = max(contours, key=cv.contourArea)
+        bot = tuple(largest_item[largest_item[:, :, 1].argmax()][0])
+        #stop = False
+        #if bot[1] > 200:
+            #stop = True
+        #stop = False
         M = cv.moments(largest_item)
         if M["m00"] >  10: 
             rect = cv.minAreaRect(largest_item)
@@ -197,6 +204,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
             cv.drawContours(frame,[box],0,(0,0,255),2)
             cv.drawContours(org,[box],0,(0,0,255),2)
             root = box[0]
+        
 
             # find the longer side
             end = None
@@ -224,31 +232,38 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
                 angle = -angle
             if not (angle <= angleOld + 1 and angle >= angleOld - 1):
                 angleOld = round(angle, 4)
-                newValues = True
+                #newValues = True
             angleOld = angle
             
             M = cv.moments(largest_item)
             #if M["m00"] >  0: 
             x = int(M['m10']/M['m00'])
             y = int(M['m01']/M['m00'])
+        else:
+            if stop == False:
+                sendSecondary(0, False, 0, 1)
             
     if x == -1:
         found = False
     else:
         found = True
     phi = findangle(x, frame.shape[1]/2)
-    if newValues is True:
-        sendSecondary(angleOld, found, phiOld)
+    if stop is True:
+        sendSecondary(0, found, 0, 2)
+    elif newValues is True:
+        sendSecondary(angleOld, found, phiOld, 0)
     #if found == True:
         #sendSecondary(angleOld, found, phiOld)
     newValues = False
-    cv.imshow("Frame", frame)
-    cv.imshow("Threashold", th)
+    #cv.imshow("Frame", frame)
+    #cv.imshow("Threashold", th)
     cv.imshow("Original", org)
     
     #rawCapture.truncate(0)
     if cv.waitKey(1) & 0xFF == 27:
         break
+    elif cv.waitKey(1) & 0xFF == ord('r'):
+        stop = False
     
 cap.release()
 cv.destroyAllWindows()
