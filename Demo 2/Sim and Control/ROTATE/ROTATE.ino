@@ -297,6 +297,9 @@ void speedDirectionSet(){
       analogWrite(M1Speed, PWM_value_R );//PWM_value_, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
       digitalWrite(M2Dir, DIRECTIONM2);
       analogWrite(M2Speed, PWM_value_L);//PWM_value_, WHEEL ON LEFT SIDE IF LOOKING FROM BACK
+  
+      if(halt)
+        victoryScreech();
      
 }
 
@@ -416,5 +419,21 @@ void printTest(){
         //Serial.print('\t');
         //Serial.print('\n');
         label ++;
+    }
+}
+
+void victoryScreech(){
+  int qua = 350;
+  int trip = qua/3;
+
+  int notes[] = {196,264, 330, 400, 524,660,785,660,   0, 0,
+    264,315,415,524,622,831,622, 0,0,
+    293, 350, 466, 587, 698, 932, 932, 932, 932, 1046};
+  int durr[] = {trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
+    trip, trip, trip, trip, trip, qua, qua/2, qua/2, trip,
+    trip, trip, trip, trip, trip, qua,trip, trip ,trip , 3*qua};
+  for(int i =1; i < 29; i++){
+      tone(11, notes[i], durr[i]);
+      delay(durr[i]);
     }
 }
