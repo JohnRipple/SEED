@@ -193,8 +193,8 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
         largest_item = max(contours, key=cv.contourArea)
         bot = tuple(largest_item[largest_item[:, :, 1].argmax()][0])
         #stop = False
-        if bot[1] > 180:
-            stop = True
+        #if bot[1] > 180:
+            #stop = True
         #stop = False
         M = cv.moments(largest_item)
         if M["m00"] >  10: 
