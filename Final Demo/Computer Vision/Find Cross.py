@@ -54,7 +54,7 @@ while True:
     gray = cv.cvtColor(gray, cv.COLOR_BGR2GRAY)  # Convert 
     gray = cv.GaussianBlur(gray, (5,5),0)
     ret, th = cv.threshold(gray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
-    (_,contours, _ )= cv.findContours(th.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv.findContours(th.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     x = -1
     y = -1
 
@@ -119,8 +119,8 @@ while True:
     #if found == True:
         #sendSecondary(angleOld, found, phiOld)
     newValues = False
-    #cv.imshow("Frame", frame)
-    #cv.imshow("Threashold", th)
+    cv.imshow("Frame", frame)
+    cv.imshow("Threashold", th)
     cv.imshow("Original", org)
 
     #rawCapture.truncate(0)
