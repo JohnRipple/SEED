@@ -7,6 +7,7 @@ Demo 2 Computer Vision
 import cv2 as cv
 import numpy as np
 import math
+import imutils
 from time import sleep
 
 
@@ -36,7 +37,7 @@ while True:
     # H: 108  S: 255  V: 126 using displayColors.py
     # Multiple colors can be added to boundaries, only one is used
     bound = 15
-    boundaries = [([90, 35, 80], [101+bound, 150, 150])]
+    boundaries = [([50, 0, 0], [130, 255, 255])]
     #boundaries = [([95, 100, 20], [125,255,255])]
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)  # Convert to HSV
     mask = np.zeros((frame.shape[0], frame.shape[1]), dtype="uint8")
@@ -65,6 +66,10 @@ while True:
     else:
         # Create bounding box for the largest contour found 
         largest_item = max(contours, key=cv.contourArea)
+        epsilon = 0.01*cv.arcLength(largest_item,True)
+        approx = cv.approxPolyDP(largest_item,epsilon,True)
+        print(len(approx))
+        cv.drawContours(org, [approx], 0, (0,255,0),2)
         bot = tuple(largest_item[largest_item[:, :, 1].argmax()][0])
         #if bot[1] > 180: #reset flag section
             #stop = True
@@ -76,36 +81,6 @@ while True:
             cv.drawContours(frame,[box],0,(0,0,255),2)
             cv.drawContours(org,[box],0,(0,0,255),2)
             root = box[0]
-        
-
-            # find the longer side
-            end = None
-            one = box[-1]
-            two = box[1]
-            if dist2D(one, root) > dist2D(two, root):
-                end = one
-            else:
-                end = two
-
-            # take the left-most point
-            left_point = None
-            right_point = None
-            if end[0] < root[0]:
-                left_point = end
-                right_point = root
-            else:
-                left_point = root
-                right_point = end
-
-            # calculate the angle [-90, 90]
-            offshoot = [left_point[0] + 100, left_point[1]]
-            angle = angle3P(right_point, offshoot, left_point)
-            if left_point[1] > right_point[0]:
-                angle = -angle
-            if not (angle <= angleOld + 1 and angle >= angleOld - 1):
-                angleOld = round(angle, 4)
-                #newValues = True
-            angleOld = angle
             
             M = cv.moments(largest_item)
             #if M["m00"] >  0: 
