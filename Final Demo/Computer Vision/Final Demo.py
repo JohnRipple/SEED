@@ -129,6 +129,7 @@ def calibrate(camera):
 
 # -- Main --
 pi = False
+cross = False
 stop = False
 cv.setUseOptimized(True)
 phiOld = 0
@@ -161,7 +162,8 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     # H: 108  S: 255  V: 126 using displayColors.py
     # Multiple colors can be added to boundaries, only one is used
     bound = 15
-    boundaries = [([90, 35, 80], [101+bound, 150, 150])]
+    boundaries = [([90, 35, 80], [101+bound, 150, 150])] # For light blue tape
+    boundaries = [([90, 35, 80], [115, 200, 150])]
     #boundaries = [([95, 100, 20], [125,255,255])]
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)  # Convert to HSV
     mask = np.zeros((frame.shape[0], frame.shape[1]), dtype="uint8")
@@ -191,12 +193,21 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     else:
         # Create bounding box for the largest contour found 
         largest_item = max(contours, key=cv.contourArea)
+        
         bot = tuple(largest_item[largest_item[:, :, 1].argmax()][0])
         #if bot[1] > 180: #reset flag section
             #stop = True
         M = cv.moments(largest_item)
         if M["m00"] >  10: 
             rect = cv.minAreaRect(largest_item)
+            sizeRatio = rect[1][0]/rect[1][1]
+            area = rect[1][0]*rect[1][1]
+            if (sizeRatio < 1.5) and sizeRatio > 0.5 and area > 17000:
+                epsilon = 0.01*cv.arcLength(largest_item,True)
+                approx = cv.approxPolyDP(largest_item,epsilon,True)
+                cv.drawContours(org, [approx], 0, (0,255,0),2)
+                if len(approx) >= 12 and len(approx) < 17:
+                    cross = True
             box = cv.boxPoints(rect)
             box = np.int0(box)
             cv.drawContours(frame,[box],0,(0,0,255),2)
@@ -246,7 +257,10 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     else:
         found = True
     phi = findangle(x, frame.shape[1]/2)
-    if stop is True:
+    if cross is True:
+        sendSecondary(0, found, 0, 2)
+        print("Cross")
+    elif stop is True:
         sendSecondary(0, found, 0, 2)
     elif newValues is True:
         sendSecondary(angleOld, found, phiOld, 0)

@@ -273,6 +273,9 @@ void speedDirectionSet(){
       if(halt && on == 0){
         victoryScreech();
         on++;
+        while(halt) {
+          
+        }
       }
      
 }
@@ -337,12 +340,15 @@ void intializeAngleVel(){
       lastTime = millis();
       lastPT = right.theta();
       lastPO = left.theta();
-//      int cornerAngleBound = 20;
-//      if (horizontalAngle < (cornerAngleBound * toRad)){ // Makes the forward velocity proportional with the error from horizontal angle
-//        setForwardVelocity = 4*(horizontalAngle/(cornerAngleBound * toRad));
-//      } else{
-//        setForwardVelocity = 4;
-//      }
+      int cornerAngleBound = 70;
+      if (horizontalAngle < (cornerAngleBound * toRad)){ // Makes the forward velocity proportional with the error from horizontal angle
+        setForwardVelocity = 4*(horizontalAngle/(cornerAngleBound * toRad *2));
+      } else{
+        setForwardVelocity = 4;
+      }
+      if (setForwardVelocity < .05) {
+        setForwardVelocity = 0.05;
+      }
 }
 
 void printTest(){
