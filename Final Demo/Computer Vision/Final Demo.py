@@ -130,6 +130,7 @@ def calibrate(camera):
 # -- Main --
 pi = False
 cross = False
+lastCross = False
 stop = False
 cv.setUseOptimized(True)
 phiOld = 0
@@ -162,8 +163,8 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     # H: 108  S: 255  V: 126 using displayColors.py
     # Multiple colors can be added to boundaries, only one is used
     bound = 15
-    boundaries = [([90, 35, 80], [101+bound, 150, 150])] # For light blue tape
-    boundaries = [([90, 35, 80], [115, 200, 150])] # For dark blue tape
+    boundaries = [([90, 35, 80], [101+bound, 255, 150])] # For light blue tape
+    #boundaries = [([90, 35, 80], [115, 200, 150])] # For dark blue tape
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)  # Convert to HSV
     mask = np.zeros((frame.shape[0], frame.shape[1]), dtype="uint8")
     # Iterate through boundaries
@@ -184,11 +185,11 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     x = -1
     y = -1
     
+    cross = False
     if len(contours) < 1:
         if found == True:
             print("No Markers Found")
-            if stop == False:
-                sendSecondary(0, False, 0, 1)
+            sendSecondary(0, False, 0, 2)
     else:
         # Create bounding box for the largest contour found 
         largest_item = max(contours, key=cv.contourArea)
@@ -202,7 +203,8 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
             # Checking for the cross using bounding box ratio, area, and numer of countour points
             sizeRatio = rect[1][0]/rect[1][1]
             area = rect[1][0]*rect[1][1]
-            if (sizeRatio < 1.5) and sizeRatio > 0.5 and area > 17000:
+            #print("Ratio %f \t Area: %f" % (sizeRatio, area))
+            if (sizeRatio < 2) and sizeRatio > 0.5 and area > 17000:
                 epsilon = 0.01*cv.arcLength(largest_item,True)
                 approx = cv.approxPolyDP(largest_item,epsilon,True)
                 cv.drawContours(org, [approx], 0, (0,255,0),2)
@@ -248,21 +250,20 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
             x = int(M['m10']/M['m00'])
             y = int(M['m01']/M['m00'])
         else:
-            if stop == False:
-                sendSecondary(0, False, 0, 1)
+            sendSecondary(0, False, 0, 2)
             
     if x == -1:
         found = False
     else:
         found = True
     phi = findangle(x, frame.shape[1]/2)
-    if cross is True:
-        sendSecondary(0, found, 0, 2)
+    #print("Last cross: " + str(lastCross) + "\t Cross: " + str(cross))
+    if lastCross is True and cross is False:
+        sendSecondary(0, found, 0, 1)
         print("Cross")
-    elif stop is True:
-        sendSecondary(0, found, 0, 2)
     elif newValues is True:
         sendSecondary(angleOld, found, phiOld, 0)
+    lastCross = cross
     newValues = False
     #cv.imshow("Frame", frame)
     #cv.imshow("Threashold", th)

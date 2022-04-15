@@ -155,7 +155,7 @@ void loop() {
       }
 
       if(AlignS) {
-        turnToTape(shiftAngle);
+        turnToTape(shiftAngle, horizontalAngle);
 
 //        if(!onTape)
 //        else{
@@ -194,7 +194,7 @@ void receiveData(int byteCount) {
         arrayOfInputs[i] = Wire.read();
       }
       //Set Horizontal Angle
-      horizontalAngle = arrayOfInputs[0] * toRad; // Need to add toRad back in ///////////////* pow(-1,arrayOfInputs[1]) 
+      horizontalAngle = arrayOfInputs[0] * toRad * pow(-1,arrayOfInputs[1]); // Need to add toRad back in ///////////////* pow(-1,arrayOfInputs[1]) 
       //Set Shift Angle
       stopSig = arrayOfInputs[4];
       if(stopSig == 0) {
@@ -205,8 +205,6 @@ void receiveData(int byteCount) {
         if(Vision && r > 1){
           halt = true;
           Serial.println("Stopping");
-        }else{
-          //Rotate = true;
         }
         if(Rotate){
           Serial.println("Still rotating");
@@ -217,7 +215,7 @@ void receiveData(int byteCount) {
       } else if (stopSig == 0){
         Vision = true;
       } else if (stopSig == 2) {
-        onTape = true;
+        Rotate = true;
       }
      
 }
@@ -280,8 +278,12 @@ void speedDirectionSet(){
      
 }
 
-void turnToTape(double angle){ //TODO: Take input and turn that much
-  if(abs(angle) > 3*toRad) {
+void turnToTape(double angle, double angleH){ //TODO: Take input and turn that much
+  if(abs(angleH) < 20*toRad) {
+    angle = (-90*toRad+abs(angleH))/3.46;
+  }
+ 
+  if(abs(angle) > 1*toRad) {
     update_position();
     // Set errorPhi
     errorPhi = angle;
@@ -340,14 +342,14 @@ void intializeAngleVel(){
       lastTime = millis();
       lastPT = right.theta();
       lastPO = left.theta();
-      int cornerAngleBound = 70;
-      if (horizontalAngle < (cornerAngleBound * toRad)){ // Makes the forward velocity proportional with the error from horizontal angle
-        setForwardVelocity = 4*(horizontalAngle/(cornerAngleBound * toRad *2));
+      int cornerAngleBound = 90;
+      if (abs(horizontalAngle) < (cornerAngleBound * toRad)){ // Makes the forward velocity proportional with the error from horizontal angle
+        setForwardVelocity = 4*(abs(horizontalAngle)/(cornerAngleBound * toRad *2));
       } else{
         setForwardVelocity = 4;
       }
-      if (setForwardVelocity < .05) {
-        setForwardVelocity = 0.05;
+      if (setForwardVelocity < .1) {
+        setForwardVelocity = 0.1;
       }
 }
 
