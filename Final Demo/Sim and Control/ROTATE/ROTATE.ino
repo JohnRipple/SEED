@@ -415,16 +415,24 @@ void printTest(){
 }
 
 void victoryScreech(){
-  int qua = 350;
+  int qua = 500;
   int trip = qua/3;
 
-  int notes[] = {196,264, 330, 400, 524,660,785,660,   0, 0,
-    264,315,415,524,622,831,622, 0,0,
-    293, 350, 466, 587, 698, 932, 932, 932, 932, 1046};
-  int durr[] = {trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
-    trip, trip, trip, trip, trip, qua, qua/2, qua/2, trip,
-    trip, trip, trip, trip, trip, qua,trip, trip ,trip , 3*qua};
-  for(int i = 0; i < 29; i++){
+//   int notes[] = {196,264, 330, 400, 524,660,785,660,   0, 0,
+//     264,315,415,524,622,831,622, 0,0,
+//     293, 350, 466, 587, 698, 932, 932, 932, 932, 1046};
+//   int durr[] = {trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
+//     trip, trip, trip, trip, trip, qua, qua/2, qua/2, trip,
+//     trip, trip, trip, trip, trip, qua,trip, trip ,trip , 3*qua};
+  int notes[] = {261, 350, 440, 350, 440, 392, 350, 293, 261, 261, 
+    350, 440, 350, 440, 392, 523, 440,
+    523, 440, 524, 440, 350, 261, 293, 350, 350, 293, 261, 261,
+    350, 440, 350, 440, 392, 350};
+  int durr[] = {qua, 2*qua, qua/2, qua/2, 2*qua, qua, 2*qua, qua, 2*qua, qua,
+    2*qua, qua/2, qua/2, 2*qua, qua, 5*qua, qua,
+    1.5*qua, qua/2, qua/2, qua/2, qua*2, qua, 1.5*qua, qua/2, qua/2, qua/2, 2*qua, qua,
+    2*qua, qua/2, qua/2, qua*2, qua, qua*5};
+  for(int i = 0; i < 35; i++){
       tone(11, notes[i], durr[i]);
       delay(durr[i]);
     }
