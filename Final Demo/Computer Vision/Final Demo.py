@@ -1,7 +1,7 @@
 '''
-Team 6
+Team 6 - John Ripple, Michael Klima, Andrew Samson, Josh Lee
 EENG 350 - Seed Lab (Spring 2022)
-Demo 2 Computer Vision 
+Final Demo Computer Vision 
 '''
 # -- Inclusions --
 import smbus
@@ -158,13 +158,12 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     frame = cv.undistort(frame, data['mtx'], data['dist'], None, data['newcameramtx'])
     org = frame
     
-    # Sends the frame through the filter process to get only the yellow hexagon
+    # Sends the frame through the filter process to get only the blue tape
     # H: 108  S: 255  V: 126 using displayColors.py
     # Multiple colors can be added to boundaries, only one is used
     bound = 15
     boundaries = [([90, 35, 80], [101+bound, 150, 150])] # For light blue tape
-    boundaries = [([90, 35, 80], [115, 200, 150])]
-    #boundaries = [([95, 100, 20], [125,255,255])]
+    boundaries = [([90, 35, 80], [115, 200, 150])] # For dark blue tape
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)  # Convert to HSV
     mask = np.zeros((frame.shape[0], frame.shape[1]), dtype="uint8")
     # Iterate through boundaries
@@ -200,6 +199,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
         M = cv.moments(largest_item)
         if M["m00"] >  10: 
             rect = cv.minAreaRect(largest_item)
+            # Checking for the cross using bounding box ratio, area, and numer of countour points
             sizeRatio = rect[1][0]/rect[1][1]
             area = rect[1][0]*rect[1][1]
             if (sizeRatio < 1.5) and sizeRatio > 0.5 and area > 17000:
@@ -213,8 +213,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
             cv.drawContours(frame,[box],0,(0,0,255),2)
             cv.drawContours(org,[box],0,(0,0,255),2)
             root = box[0]
-        
-
+    
             # find the longer side
             end = None
             one = box[-1]
@@ -264,8 +263,6 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
         sendSecondary(0, found, 0, 2)
     elif newValues is True:
         sendSecondary(angleOld, found, phiOld, 0)
-    #if found == True:
-        #sendSecondary(angleOld, found, phiOld)
     newValues = False
     #cv.imshow("Frame", frame)
     #cv.imshow("Threashold", th)
