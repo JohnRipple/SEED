@@ -253,7 +253,7 @@ void speedDirectionSet(){
       }  
 
      if(halt){
-        int tmp = r+0.5;
+        int tmp = r+0;
         while (tmp - r > 0) {
           update_position();
         }
