@@ -140,13 +140,13 @@ void setup() {
   digitalWrite(4, HIGH); //Sets pin 4 to high so the motor works
   //Wire.begin(SLAVE_ADDRESS); //Sets the
   //Wire.onReceive(receiveData);
-  Serial.println("Ready!");
+  //Serial.println("Ready!");
  delay(1000);
 }
 
 void loop() {
     update_position();// UPDATES THE R VALUE WHICH TELLS IT HOW FAR IT HAS DRIVEN
-
+    readingData();
        
     if ( millis() % 10 == 0){
       intializeAngleVel();
@@ -174,16 +174,16 @@ void loop() {
         PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
         PWM_value_R = ((barVoltage - deltaVoltage) / 2);
       }
-      printTest(); 
+      //printTest(); 
       speedDirectionSet(); 
       
     }
 }
 
-void serialEvent(){
+void readingData(){
   // if something is sent from the RPI to the serial monitor/address then set the variable data to the data/values that was sent from the RPI
   if (Serial.available() > 0) {
-    data = Serial.readStringUntil("\n");
+    String data = Serial.readStringUntil("\n");
     Rotate = false;
     AlignS = true;
     //halt = false;
@@ -192,15 +192,20 @@ void serialEvent(){
     int arrayOfInputs[5] = {0};
     String smallerString = "";
     int count = 0;
-    for (int i = 0; i < data.length();i++){
-      if (data[i] != " ") {
-        smallerString = smallerString + data[i];
-      }
-      else {
-        arrayOfInputs[count] = atoi(smallerString);
-        count++;
-        smallerString = "";
-      }
+    
+    for (int i = 0; i < 5;i++){
+      int comma_position = data.indexOf(',');   
+      String servo_0_angle_str = data.substring(0,comma_position);
+      arrayOfInputs[i] = servo_0_angle_str.toInt();
+      data = data.substring(comma_position+1, data.length());
+//      if (data[i] != " ") {
+//        smallerString = smallerString + data[i];
+//      }
+//      else if (count < 5) {
+//        arrayOfInputs[count] = smallerString.toInt();
+//        count++;
+//        smallerString = "";
+//      }
     }
     //Set Horizontal Angle
     horizontalAngle = arrayOfInputs[0] * toRad * pow(-1,arrayOfInputs[1]); // Need to add toRad back in ///////////////* pow(-1,arrayOfInputs[1]) 
@@ -226,8 +231,6 @@ void serialEvent(){
     } else if (stopSig == 2) {
       Rotate = true;
     }
-    // set DataRead to true so that the loop will sent values/data back to the RPI
-    DataRead = true;
   }
   // flushes the seral monitor/address so that previous values don't leak into future values
   Serial.flush();

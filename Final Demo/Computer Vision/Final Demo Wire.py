@@ -49,15 +49,20 @@ def sendSecondary(angleH, inFrame, angle, stopSig):
         signS = 1
     if angleH < 0:
         signH = 1
-    array = [round(abs(angleH)), signH, round(abs(angle)), signS, stopSig]
+    array = [(round(abs(angleH))), (signH), (round(abs(angle))), (signS), (stopSig)]
+    array2 = [str(round(abs(angleH))), str(signH), str(round(abs(angle))), str(signS), str(stopSig)]
+    strData = ','.join(array2)
+    strData += '\n'
+    '''
     strData = ""
     for i in range(len(array)):
-        strData += i + " "    
+        strData += str(i) + " "    
     strData += "\n"
+    '''
     print("Horizontal Angle: %d   Shift Angle: %d   Stop Signal: %d" % ((pow(-1, array[1]))*array[0], (pow(-1, array[3]))*array[2], stopSig))
     try:
         #bus.write_i2c_block_data(address, 0, array)
-        ser.write(strData.encode())
+        ser.write(strData.encode('utf-8'))
     except:
         print("I2C connection failed, please check connection")
     '''
