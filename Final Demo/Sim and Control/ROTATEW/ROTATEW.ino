@@ -138,8 +138,8 @@ void setup() {
   pinMode(12, INPUT);
   pinMode(13, OUTPUT); //I2C connection
   digitalWrite(4, HIGH); //Sets pin 4 to high so the motor works
-  Wire.begin(SLAVE_ADDRESS); //Sets the
-  Wire.onReceive(receiveData);
+  //Wire.begin(SLAVE_ADDRESS); //Sets the
+  //Wire.onReceive(receiveData);
   Serial.println("Ready!");
  delay(1000);
 }
@@ -180,7 +180,58 @@ void loop() {
     }
 }
 
-
+void serialEvent(){
+  // if something is sent from the RPI to the serial monitor/address then set the variable data to the data/values that was sent from the RPI
+  if (Serial.available() > 0) {
+    data = Serial.readStringUntil("\n");
+    Rotate = false;
+    AlignS = true;
+    //halt = false;
+    //Serial.println("Data recieved");
+    // Array of Inputs from Pi
+    int arrayOfInputs[5] = {0};
+    String smallerString = "";
+    int count = 0;
+    for (int i = 0; i < data.length();i++){
+      if (data[i] != " ") {
+        smallerString = smallerString + data[i];
+      }
+      else {
+        arrayOfInputs[count] = atoi(smallerString);
+        count++;
+        smallerString = "";
+      }
+    }
+    //Set Horizontal Angle
+    horizontalAngle = arrayOfInputs[0] * toRad * pow(-1,arrayOfInputs[1]); // Need to add toRad back in ///////////////* pow(-1,arrayOfInputs[1]) 
+    //Set Shift Angle
+    stopSig = arrayOfInputs[4];
+    if(stopSig == 0) {
+      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad;
+    }
+    
+    if (stopSig == 1){
+      if(Vision && r > 1){
+        halt = true;
+        Serial.println("Stopping");
+      }
+      if(Rotate){
+        Serial.println("Still rotating");
+      }
+      Serial.println("Message recieved \n");
+      Vision = false;
+      
+    } else if (stopSig == 0){
+      Vision = true;
+    } else if (stopSig == 2) {
+      Rotate = true;
+    }
+    // set DataRead to true so that the loop will sent values/data back to the RPI
+    DataRead = true;
+  }
+  // flushes the seral monitor/address so that previous values don't leak into future values
+  Serial.flush();
+}
 // Gets Data from Pi
 void receiveData(int byteCount) {
       Rotate = false;
