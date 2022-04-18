@@ -13,10 +13,12 @@ import math
 from picamera import PiCamera
 from picamera.array import PiRGBArray
 from time import sleep
+import serial
 
 #setting address/bus
 bus = smbus.SMBus(1)
 address = 0x04
+ser = serial.Serial('/dev/ttyACM0', 115200)
 
 # function that sends number to arduino
 def writeNumber(value):
@@ -48,9 +50,14 @@ def sendSecondary(angleH, inFrame, angle, stopSig):
     if angleH < 0:
         signH = 1
     array = [round(abs(angleH)), signH, round(abs(angle)), signS, stopSig]
+    strData = ""
+    for i in range(len(array)):
+        strData += i + " "    
+    strData += "\n"
     print("Horizontal Angle: %d   Shift Angle: %d   Stop Signal: %d" % ((pow(-1, array[1]))*array[0], (pow(-1, array[3]))*array[2], stopSig))
     try:
-        bus.write_i2c_block_data(address, 0, array)
+        #bus.write_i2c_block_data(address, 0, array)
+        ser.write(strData.encode())
     except:
         print("I2C connection failed, please check connection")
     '''
