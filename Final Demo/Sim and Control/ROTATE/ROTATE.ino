@@ -110,7 +110,7 @@ double INPUT_ANGLE = 0;
 bool Vision = false;
 bool halt = false;
 bool onTape = false;
-
+bool useHAngle = false;
 
 //double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*10)* PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
 double desired_angle = (INPUT_ANGLE) * PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
@@ -264,7 +264,7 @@ void speedDirectionSet(){
 
       // Writes values to motors
       digitalWrite(M1Dir, DIRECTIONM1); //
-      analogWrite(M1Speed, PWM_value_R );//PWM_value_, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
+      analogWrite(M1Speed, PWM_value_R);//PWM_value_, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
       digitalWrite(M2Dir, DIRECTIONM2);
       analogWrite(M2Speed, PWM_value_L);//PWM_value_, WHEEL ON LEFT SIDE IF LOOKING FROM BACK
   
@@ -279,8 +279,14 @@ void speedDirectionSet(){
 }
 
 void turnToTape(double angle, double angleH){ //TODO: Take input and turn that much
-  if(abs(angleH) < 20*toRad) {
+  if(abs(angleH) < 20*toRad || useHAngle) {
     angle = (-90*toRad+abs(angleH))/3.46;
+    if(r > 1) {
+      useHAngle = true;
+    }
+    if (abs(angleH) > 60*toRad) {
+      useHAngle = false;
+    }
   }
  
   if(abs(angle) > 1*toRad) {
