@@ -16,6 +16,7 @@ from time import sleep
 
 #setting address/bus
 bus = smbus.SMBus(1)
+sleep(1)
 address = 0x04
 
 # function that sends number to arduino
@@ -163,7 +164,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     # H: 108  S: 255  V: 126 using displayColors.py
     # Multiple colors can be added to boundaries, only one is used
     bound = 15
-    boundaries = [([90, 35, 80], [101+bound, 255, 150])] # For light blue tape
+    boundaries = [([90, 35, 90], [101+bound, 255, 130])] # For light blue tape
     #boundaries = [([90, 35, 80], [115, 200, 150])] # For dark blue tape
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)  # Convert to HSV
     mask = np.zeros((frame.shape[0], frame.shape[1]), dtype="uint8")
