@@ -11,7 +11,7 @@ from time import sleep
 import serial
 
 # Set up serial communication
-ser = serial.Serial('/dev/ttyACM1', 115200, timeout=1)
+ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
 ser.reset_input_buffer()
 
 
@@ -134,7 +134,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     gray = cv.cvtColor(gray, cv.COLOR_BGR2GRAY)  # Convert 
     gray = cv.GaussianBlur(gray, (5,5),0)
     ret, th = cv.threshold(gray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
-    (contours, _ )= cv.findContours(th.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    (_,contours, _ )= cv.findContours(th.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     x = -1
     y = -1
     

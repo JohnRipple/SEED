@@ -87,8 +87,8 @@ double lastTime = 0;
 double hamburger = 0;
 double oneChange = 0;
 double twoChange = 0;
-double angStrong = 1;
-double setForwardVelocity = 4;
+double angStrong = 3;
+double setForwardVelocity = 5;
 
 double horizontalAngle = 0;
 double shiftAngle = 0;
@@ -236,8 +236,8 @@ void speedDirectionSet(){
       }  
 
      if(halt){
-        int tmp = r+0;
-        while (tmp - r > 0) {
+        int tmp = distanceTotal+1;
+        while (tmp - distanceTotal > 0) {
           update_position();
         }
 
@@ -270,9 +270,16 @@ void turnToTape(double angle, double angleH){ //TODO: Take input and turn that m
     if (abs(angleH) > 60*toRad) {
       useHAngle = false;
     }
+  } else if (distanceTotal > 1) {
+    if(abs(angle) > 3*toRad) {
+      angStrong = 8;
+    } else {
+      angStrong = 5;
+    }
+    
   }
  
-  if(abs(angle) > 1*toRad) { 
+  if(abs(angle) > 1*toRad) {
     update_position();
     // Set errorPhi
     errorPhi = angle;
@@ -339,9 +346,9 @@ void intializeAngleVel(){
       lastPO = left.theta();
       int cornerAngleBound = 90;
       if (abs(horizontalAngle) < (cornerAngleBound * toRad)){ // Makes the forward velocity proportional with the error from horizontal angle
-        setForwardVelocity = 4*(abs(horizontalAngle)/(cornerAngleBound * toRad *2));
+        setForwardVelocity = 5*(abs(horizontalAngle)/(cornerAngleBound * toRad *2));
       } else{
-        setForwardVelocity = 4;
+        setForwardVelocity = 5;
       }
       if (setForwardVelocity < .1) {
         setForwardVelocity = 0.1;
