@@ -10,10 +10,7 @@
  * connect + on wire splitter to the 5V on the arduino
  *
  */
-#include <Wire.h>
 #include <Encoder.h>
-#define SLAVE_ADDRESS 0x04
-int label = 0;
 // ============== Localization Initialization ==============
 const double meterToFeet = 3.28084;
 const double N_per_Rotation = 3200; // in ticks
@@ -22,14 +19,13 @@ const double robot_width = meterToFeet*0.29; //in meters (Needs to be measured f
 const double enc_to_rad = 2*PI/N_per_Rotation; //in radian / tick
 const double toRad = PI/180;
 
-bool duh = false;
 int on = 0;
 
-int enc_last = 0;
 double x = 0; //in meters
 double y = 0; //in meters
 double r = 0; //in meters
 double phi = 0; //in radians
+double distanceTotal = 0; //in feet
 
 struct wheel :  Encoder{
   wheel(int x, int y, int s) : Encoder(x,y){side = s;};  //constructor
@@ -65,21 +61,15 @@ int DIRECTIONM1 = HIGH;
 int DIRECTIONM2 = HIGH;
 bool STRAIGHT = true;
 
-int state = 0; //0: find tape; 1: center tape; 2: move forward till tape in lower 1/3; 3: 
-int nextState = 0;
 int Rotate = 1;
 int Forward = 0;
-int AlignH = 0;
 int AlignS = 0;
-
-int ONCE = 0;
 
 int PWM_value_R = 0; // DONT FORGET ABOUT THIS _____________________________________________________________________________________________________
 int PWM_value_L = 0;
 
 double errorDis = 0;
 double errorPhi = 0;
-double curDis = 0.0;
 
 double lastPT = 0.0;
 double lastPO = 0.0;
@@ -95,7 +85,6 @@ double deltaVoltage = 0.0;
 double samplingRate = 0.01;// in seconds, 10 milliseconds
 double lastTime = 0;
 double hamburger = 0;
-double timer = 0;
 double oneChange = 0;
 double twoChange = 0;
 double angStrong = 1;
@@ -109,8 +98,7 @@ double INPUT_ANGLE = 0;
 
 bool Vision = false;
 bool halt = false;
-bool onTape = false;
-
+bool useHAngle = false;
 
 //double desired_angle = (INPUT_ANGLE + (INPUT_ANGLE/90)*10)* PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
 double desired_angle = (INPUT_ANGLE) * PI/180; //CHANGE THIS CONTROLLER -(INPUT_ANGLE + (INPUT_ANGLE/90)*33.5
@@ -118,7 +106,6 @@ double desired_angle = (INPUT_ANGLE) * PI/180; //CHANGE THIS CONTROLLER -(INPUT_
 double desDis = INPUT_DISTANCE - (INPUT_DISTANCE/5)*( 0.105);
 
 //Controller Specifications
-//K was initially like 4.1
 
 // It'll read the desired direction as the input, then it will output speed to reach the desired location
 float Kp = 0.289202862842511*2; //in Volts/Radian //was 2
@@ -129,24 +116,20 @@ double I = 0;
 
 void setup() {
   Serial.begin(115200);
-
   pinMode(4, OUTPUT); //Ensures that the motor will move
   pinMode(M1Dir, OUTPUT); //Sets the Motor 1 direction as an output
   pinMode(M2Dir, OUTPUT); //Sets the Motor 2 direction as an output
   pinMode(M1Speed, OUTPUT); //Sets the Motor 1 speed as an output
   pinMode(M2Speed, OUTPUT); //Sets the Motor 2 speed as an output
-  pinMode(12, INPUT);
-  pinMode(13, OUTPUT); //I2C connection
   digitalWrite(4, HIGH); //Sets pin 4 to high so the motor works
-  //Wire.begin(SLAVE_ADDRESS); //Sets the
-  //Wire.onReceive(receiveData);
-  //Serial.println("Ready!");
- delay(1000);
+  delay(1000);
 }
 
 void loop() {
     update_position();// UPDATES THE R VALUE WHICH TELLS IT HOW FAR IT HAS DRIVEN
-    readingData();
+    if (Serial.available() > 0) {
+      receiveData();
+    }
        
     if ( millis() % 10 == 0){
       intializeAngleVel();
@@ -156,13 +139,6 @@ void loop() {
 
       if(AlignS) {
         turnToTape(shiftAngle, horizontalAngle);
-
-//        if(!onTape)
-//        else{
-//          //Serial.println("HOriz");
-//          turnToTape(horizontalAngle - 90*toRad);
-//          
-//        }
         
       }
       
@@ -174,101 +150,54 @@ void loop() {
         PWM_value_L = ((barVoltage + deltaVoltage) / 2); // Used to be /2
         PWM_value_R = ((barVoltage - deltaVoltage) / 2);
       }
-      //printTest(); 
       speedDirectionSet(); 
       
     }
 }
 
-void readingData(){
-  // if something is sent from the RPI to the serial monitor/address then set the variable data to the data/values that was sent from the RPI
-  if (Serial.available() > 0) {
-    String data = Serial.readStringUntil("\n");
-    Rotate = false;
-    AlignS = true;
-    //halt = false;
-    //Serial.println("Data recieved");
-    // Array of Inputs from Pi
-    int arrayOfInputs[5] = {0};
-    String smallerString = "";
-    int count = 0;
-    
-    for (int i = 0; i < 5;i++){
-      int comma_position = data.indexOf(',');   
-      String servo_0_angle_str = data.substring(0,comma_position);
-      arrayOfInputs[i] = servo_0_angle_str.toInt();
-      data = data.substring(comma_position+1, data.length());
-//      if (data[i] != " ") {
-//        smallerString = smallerString + data[i];
-//      }
-//      else if (count < 5) {
-//        arrayOfInputs[count] = smallerString.toInt();
-//        count++;
-//        smallerString = "";
-//      }
-    }
-    //Set Horizontal Angle
-    horizontalAngle = arrayOfInputs[0] * toRad * pow(-1,arrayOfInputs[1]); // Need to add toRad back in ///////////////* pow(-1,arrayOfInputs[1]) 
-    //Set Shift Angle
-    stopSig = arrayOfInputs[4];
-    if(stopSig == 0) {
-      shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad;
-    }
-    
-    if (stopSig == 1){
-      if(Vision && r > 1){
-        halt = true;
-        Serial.println("Stopping");
-      }
-      if(Rotate){
-        Serial.println("Still rotating");
-      }
-      Serial.println("Message recieved \n");
-      Vision = false;
-      
-    } else if (stopSig == 0){
-      Vision = true;
-    } else if (stopSig == 2) {
-      Rotate = true;
-    }
-  }
-  // flushes the seral monitor/address so that previous values don't leak into future values
-  Serial.flush();
-}
+
 // Gets Data from Pi
-void receiveData(int byteCount) {
+void receiveData() {
       Rotate = false;
       AlignS = true;
       //halt = false;
-      //Serial.println("Data recieved");
       // Array of Inputs from Pi
       int arrayOfInputs[5] = {0};
-      Wire.read();
-      for(int i = 0; i < 5; i++) {
-        arrayOfInputs[i] = Wire.read();
+      String data = Serial.readStringUntil('\n');
+      int start = 0;
+      int count = 0;
+      Serial.print("You Sent me: ");
+      for(int i = 0; i < data.length(); i++){
+       if(data[i] == ' ') {
+         arrayOfInputs[count] = data.substring(start, i).toInt();
+         start = i;
+         count++;
+       }
       }
-      //Set Horizontal Angle
-      horizontalAngle = arrayOfInputs[0] * toRad * pow(-1,arrayOfInputs[1]); // Need to add toRad back in ///////////////* pow(-1,arrayOfInputs[1]) 
-      //Set Shift Angle
+     
+     Serial.println(data); 
+     
       stopSig = arrayOfInputs[4];
       if(stopSig == 0) {
+        // The Tape is in sight
+        //Set Horizontal Angle
+        horizontalAngle = arrayOfInputs[0] * toRad * pow(-1,arrayOfInputs[1]); // Need to add toRad back in ///////////////* pow(-1,arrayOfInputs[1]) 
+        //Set Shift Angle
         shiftAngle = arrayOfInputs[2] * pow(-1,arrayOfInputs[3])* toRad;
-      }
-      
-      if (stopSig == 1){
+
+        Vision = true;
+        Rotate = false;
+        
+      } else if (stopSig == 1){
+        // Stopping at cross
         if(Vision && r > 1){
           halt = true;
-          Serial.println("Stopping");
         }
-        if(Rotate){
-          Serial.println("Still rotating");
-        }
-        Serial.println("Message recieved \n");
         Vision = false;
         
-      } else if (stopSig == 0){
-        Vision = true;
       } else if (stopSig == 2) {
+        // No tape seen
+        Vision = false;
         Rotate = true;
       }
      
@@ -318,7 +247,7 @@ void speedDirectionSet(){
 
       // Writes values to motors
       digitalWrite(M1Dir, DIRECTIONM1); //
-      analogWrite(M1Speed, PWM_value_R );//PWM_value_, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
+      analogWrite(M1Speed, PWM_value_R);//PWM_value_, WHEEL ON RIGHT SIDE IF LOOKING FROM BACK
       digitalWrite(M2Dir, DIRECTIONM2);
       analogWrite(M2Speed, PWM_value_L);//PWM_value_, WHEEL ON LEFT SIDE IF LOOKING FROM BACK
   
@@ -333,11 +262,17 @@ void speedDirectionSet(){
 }
 
 void turnToTape(double angle, double angleH){ //TODO: Take input and turn that much
-  if(abs(angleH) < 20*toRad) {
+  if(abs(angleH) < 20*toRad || useHAngle) {
     angle = (-90*toRad+abs(angleH))/3.46;
+    if(distanceTotal > 3) {
+      useHAngle = true;
+    }
+    if (abs(angleH) > 60*toRad) {
+      useHAngle = false;
+    }
   }
  
-  if(abs(angle) > 1*toRad) {
+  if(abs(angle) > 1*toRad) { 
     update_position();
     // Set errorPhi
     errorPhi = angle;
@@ -378,12 +313,18 @@ void rotate(int direct){
 void update_position(){ //Updates position for localization
   double d_r = right.displacement(); //sets a constant position throughout function
   double d_l = left.displacement();
+
+  double xOld = x;
+  double yOld = y;
+  x = cos(phi)*(d_r + d_l) / 2; //updates x postion
+  y = sin(phi)*(d_r + d_l) / 2; //updates y position
  
-  x = x + cos(phi)*(d_r + d_l) / 2; //updates x postion
-  y = y + sin(phi)*(d_r + d_l) / 2; //updates y position
-  r = sqrt(x*x + y*y); // upadates r / distance traveled
+  distanceTotal += sqrt(x*x + y*y);
   
   phi = (right.read() - left.read()) * enc_to_rad * radius / robot_width; //updates orientation
+  x = x + xOld;
+  y = y + yOld;
+  r = sqrt(x*x + y*y); // upadates r / distance away from origin
 }
 
 void intializeAngleVel(){
@@ -407,112 +348,26 @@ void intializeAngleVel(){
       }
 }
 
-void printTest(){
-  if(millis() % 1000 == 0){//values to print for testing, can be deleted if desired
-        if(label %12 == 0){
-        Serial.print('\n');
-//        Serial.print("phi");
-//        Serial.print('\t');
-//        Serial.print('\t');
-        Serial.print("Error");
-        Serial.print('\t');
-        Serial.print("Er vel");
-        Serial.print('\t');
-        Serial.print("Er Ang");
-        Serial.print('\t');
-        Serial.print("Dis");
-        Serial.print('\t');
-        Serial.print("desDis");
-        Serial.print('\t');    
-        Serial.print("x");
-        Serial.print('\t');
-        Serial.print("y");
-        Serial.print('\t');
-        Serial.print("PWM L");
-        Serial.print('\t');  
-        Serial.print("PWM R");
-        Serial.print('\t');
-        Serial.print("Left");
-        Serial.print('\t');
-        Serial.print("Right");
-        Serial.print('\n');    
-        }
-         
-//        Serial.print(phi* 180/PI);
-//        Serial.print('\t');
-       
-        Serial.print(errorPhi *180/PI);
-        Serial.print('\t');
-        Serial.print(barVoltage);
-        Serial.print('\t');
-        Serial.print(deltaVoltage);
-        Serial.print('\t');
-        Serial.print(r);
-        Serial.print('\t');
-        Serial.print(desDis);
-        Serial.print('\t');
-        Serial.print(x);
-        Serial.print('\t');
-        Serial.print(y);
-        Serial.print('\t');
-        Serial.print(PWM_value_R);
-        Serial.print('\t');
-        Serial.print(PWM_value_L);
-        Serial.print('\t');
-        Serial.print(left.read());
-        Serial.print('\t');
-        Serial.println(right.read());
-        //Serial.print('\t');
-        //Serial.print('\n');
-        label ++;
-    }
-}
-
 void victoryScreech(){
-  randomSeed(millis());
-  int song = random(0,2);
-  int tempo[] = {350, 500, 500);
-  int lengths[] = {29, 35, 71};
-  int qua = tempo[song];
-  int hal = 2*qua;
+  int qua = 500;
   int trip = qua/3;
-  int eit = qua/2;
-  int who = 4* qua;
 
-  int notes[][] = {{196,264, 330, 400, 524,660,785,660, 0, 0,
-          264,315,415,524,622,831,622, 0,0,
-          293, 350, 466, 587, 698, 932, 932, 932, 932, 1046}, 
-
-      {261, 350, 440, 350, 440, 392, 350, 293, 261, 261, 
-          350, 440, 350, 440, 392, 523, 440,
-          523, 440, 524, 440, 350, 261, 293, 350, 350, 293, 261, 261,
-          350, 440, 350, 440, 392, 350},
-
-      {440, 349, 440, 349, 349, 293, 261, 349, 349, 349, 349, 440, 523, 523, 
-      523, 587, 523, 440, 523, 349, 349, 293, 261,
-      349, 349, 349, 392, 440, 349, 392, 349, 440, 587, 349, 293, 349, 349, 349,
-      349, 349, 349, 293, 261, 349, 349, 349, 349, 440, 659, 659, 659, 659,
-      587, 261, 440, 440, 349, 349, 349, 349, 349, 293, 261,
-      349, 349, 349, 392, 440, 349, 392, 349}};
-
-  int durr[][] = {{trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
-          trip, trip, trip, trip, trip, qua, qua/2, qua/2, trip,
-          trip, trip, trip, trip, trip, qua,trip, trip ,trip , 3*qua},
-
-      {qua, 2*qua, eit, eit, 2*qua, qua, 2*qua, qua, 2*qua, qua,
-          2*qua, eit, eit, 2*qua, qua, 5*qua, qua,
-          1.5*qua, eit, eit, eit, qua*2, qua, 1.5*qua, eit, eit, eit, 2*qua, qua,
-          2*qua, eit, eit, qua*2, qua, qua*5},
-
-      {qua, hal, qua, 1.5*qua, eit, eit, 1.5*qua, eit, eit, eit, eit, eit, eit, qua,
-      who, eit, eit, hal, qua, 1.5*qua, eit, eit, eit + qua,
-      eit, eit, eit, eit, eit, eit, qua, hal + qua, qua, eit, qua, eit, qua, eit, eit,
-      eit, eit, qua, eit, qua + eit, eit, eit, eit, eit, eit, eit, qua, hal + qua, qua,
-      eit, eit, qua, qua, qua, eit, eit, eit, eit, eit, qua + eit, 
-      eit, eit, eit, eit, eit, eit, qua, who}};
-
-  for(int i = 0; i < lengths[song]; i++){
-        tone(11, notes[song][i], durr[song][i]);
-        delay(durr[song][i]);
-  }
+//   int notes[] = {196,264, 330, 400, 524,660,785,660,   0, 0,
+//     264,315,415,524,622,831,622, 0,0,
+//     293, 350, 466, 587, 698, 932, 932, 932, 932, 1046};
+//   int durr[] = {trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
+//     trip, trip, trip, trip, trip, qua, qua/2, qua/2, trip,
+//     trip, trip, trip, trip, trip, qua,trip, trip ,trip , 3*qua};
+  int notes[] = {261, 350, 440, 350, 440, 392, 350, 293, 261, 261, 
+    350, 440, 350, 440, 392, 523, 440,
+    523, 440, 524, 440, 350, 261, 293, 350, 350, 293, 261, 261,
+    350, 440, 350, 440, 392, 350};
+  int durr[] = {qua, 2*qua, qua/2, qua/2, 2*qua, qua, 2*qua, qua, 2*qua, qua,
+    2*qua, qua/2, qua/2, 2*qua, qua, 5*qua, qua,
+    1.5*qua, qua/2, qua/2, qua/2, qua*2, qua, 1.5*qua, qua/2, qua/2, qua/2, 2*qua, qua,
+    2*qua, qua/2, qua/2, qua*2, qua, qua*5};
+  for(int i = 0; i < 35; i++){
+      tone(11, notes[i], durr[i]);
+      delay(durr[i]);
+    }
 }

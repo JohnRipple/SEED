@@ -4,37 +4,15 @@ EENG 350 - Seed Lab (Spring 2022)
 Final Demo Computer Vision 
 '''
 # -- Inclusions --
-import smbus
-import board
-import adafruit_character_lcd.character_lcd_rgb_i2c as character_lcd
 import cv2 as cv
 import numpy as np
 import math
-from picamera import PiCamera
-from picamera.array import PiRGBArray
 from time import sleep
 import serial
 
-#setting address/bus
-bus = smbus.SMBus(1)
-address = 0x04
-ser = serial.Serial('/dev/ttyACM0', 115200)
-
-# function that sends number to arduino
-def writeNumber(value):
-    bus.write_byte(address,value)
-    return -1
-
-# initialize I2C bus
-i2c = board.I2C()
-
-'''
-# lcd settings
-lcd_columns = 16
-lcd_rows = 2
-lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
-lcd.clear()
-'''
+# Set up serial communication
+ser = serial.Serial('/dev/ttyACM1', 115200, timeout=1)
+ser.reset_input_buffer()
 
 
 # -- Function Declarations --
@@ -49,29 +27,13 @@ def sendSecondary(angleH, inFrame, angle, stopSig):
         signS = 1
     if angleH < 0:
         signH = 1
-    array = [(round(abs(angleH))), (signH), (round(abs(angle))), (signS), (stopSig)]
-    array2 = [str(round(abs(angleH))), str(signH), str(round(abs(angle))), str(signS), str(stopSig)]
-    strData = ','.join(array2)
-    strData += '\n'
-    '''
-    strData = ""
-    for i in range(len(array)):
-        strData += str(i) + " "    
-    strData += "\n"
-    '''
+    array = [round(abs(angleH)), signH, round(abs(angle)), signS, stopSig]
+    s = " ".join(map(str, array)) + " \n"
+    ser.write(s.encode('utf-8')) 
+    line = ser.readline().decode('utf-8').rstrip()
+    print(line)
     print("Horizontal Angle: %d   Shift Angle: %d   Stop Signal: %d" % ((pow(-1, array[1]))*array[0], (pow(-1, array[3]))*array[2], stopSig))
-    try:
-        #bus.write_i2c_block_data(address, 0, array)
-        ser.write(strData.encode('utf-8'))
-    except:
-        print("I2C connection failed, please check connection")
-    '''
-    lcd.clear()
-    if inFrame:
-        lcd.message = "Angle:\n" + str(angle)
-    else:
-        lcd.message = "Searching..."
-    '''
+    
 
 # 2d distance
 def dist2D(one, two):
@@ -121,26 +83,8 @@ def findangle(x, center):
         phiOld = phi
     return phiOld
 
-'''
-Name:      calibrate()
-Function:  Initalize the PyCamera and fix the white balance
-Input:     None
-Output:    None
-'''
-def calibrate(camera):
-    camera.resolution = (320, 240) # Set resolution
-    #camera.iso = 50               # Fix iso (100/200 for light, 300/400 for dark)
-    camera.framerate = 24          # Fix framerate
-    sleep(2)                  # Allow camera to adjust
-    #camera.shutter_speed = camera.exposure_speed
-    camera.exposure_mode = 'off'   # Auto exposure off
-    #g = camera.awb_gains
-    camera.awb_mode = 'off'        # Auto white balance off
-    #camera.awb_gains = g
-    camera.awb_gains = (343/256, 101/64)
 
 # -- Main --
-pi = False
 cross = False
 lastCross = False
 stop = False
@@ -151,14 +95,11 @@ data = np.load('camera_distort_matrices.npz') # Load the Previously found distor
 found = True
 newValues = False
 kernel = np.ones((2,2), np.uint8)
-if pi:
-    camera = PiCamera() # Initialize PyCamera and calibrate
-    rawCapture = PiRGBArray(camera)
-    calibrate(camera)
-else:
-    cap = cv.VideoCapture(0)
-    cap.set(3, 320)                               # Set Camera width
-    cap.set(4, 240)                               # Set Camera height
+
+#Set Camera values
+cap = cv.VideoCapture(0)
+cap.set(3, 320)                               # Set Camera width
+cap.set(4, 240)                               # Set Camera height
 
 while True:
     '''
@@ -175,7 +116,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     # H: 108  S: 255  V: 126 using displayColors.py
     # Multiple colors can be added to boundaries, only one is used
     bound = 15
-    boundaries = [([90, 35, 80], [101+bound, 255, 150])] # For light blue tape
+    boundaries = [([90, 35, 90], [101+bound, 255, 130])] # For light blue tape
     #boundaries = [([90, 35, 80], [115, 200, 150])] # For dark blue tape
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)  # Convert to HSV
     mask = np.zeros((frame.shape[0], frame.shape[1]), dtype="uint8")
@@ -193,7 +134,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     gray = cv.cvtColor(gray, cv.COLOR_BGR2GRAY)  # Convert 
     gray = cv.GaussianBlur(gray, (5,5),0)
     ret, th = cv.threshold(gray, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
-    (_,contours, _ )= cv.findContours(th.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    (contours, _ )= cv.findContours(th.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     x = -1
     y = -1
     
@@ -281,7 +222,6 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     #cv.imshow("Threashold", th)
     cv.imshow("Original", org)
     
-    #rawCapture.truncate(0)
     if cv.waitKey(1) & 0xFF == 27:
         break
     elif cv.waitKey(1) & 0xFF == ord('r'):
