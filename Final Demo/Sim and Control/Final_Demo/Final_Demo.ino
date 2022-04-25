@@ -88,13 +88,14 @@ double hamburger = 0;
 double oneChange = 0;
 double twoChange = 0;
 double angStrong = 3;
-double setForwardVelocity = 5;
+double setForwardVelocity = 6;
 
 double horizontalAngle = 0;
 double shiftAngle = 0;
 int stopSig = 0;
 double INPUT_DISTANCE = 0.5;
 double INPUT_ANGLE = 0;
+double rightTurn = 0;
 
 bool Vision = false;
 bool halt = false;
@@ -162,7 +163,7 @@ void receiveData() {
       AlignS = true;
       //halt = false;
       // Array of Inputs from Pi
-      int arrayOfInputs[5] = {0};
+      int arrayOfInputs[6] = {0};
       String data = Serial.readStringUntil('\n');
       int start = 0;
       int count = 0;
@@ -176,7 +177,7 @@ void receiveData() {
       }
      
      Serial.println(data); 
-     
+      rightTurn = arrayOfInputs[5];
       stopSig = arrayOfInputs[4];
       if(stopSig == 0) {
         // The Tape is in sight
@@ -263,7 +264,9 @@ void speedDirectionSet(){
 
 void turnToTape(double angle, double angleH){ //TODO: Take input and turn that much
   if(abs(angleH) < 20*toRad || useHAngle) {
-    angle = (-90*toRad+abs(angleH))/3.46;
+    if(rightTurn == 1) {
+      angle = (-90*toRad+abs(angleH))/3.46;
+    }
     if(distanceTotal > 3) {
       useHAngle = true;
     }
@@ -271,7 +274,7 @@ void turnToTape(double angle, double angleH){ //TODO: Take input and turn that m
       useHAngle = false;
     }
   } else if (distanceTotal > 1) {
-    if(abs(angle) > 3*toRad) {
+    if(abs(angle) > 2*toRad) {
       angStrong = 8;
     } else {
       angStrong = 5;
@@ -346,9 +349,9 @@ void intializeAngleVel(){
       lastPO = left.theta();
       int cornerAngleBound = 90;
       if (abs(horizontalAngle) < (cornerAngleBound * toRad)){ // Makes the forward velocity proportional with the error from horizontal angle
-        setForwardVelocity = 5*(abs(horizontalAngle)/(cornerAngleBound * toRad *2));
+        setForwardVelocity = 6*(abs(horizontalAngle)/(cornerAngleBound * toRad *2));
       } else{
-        setForwardVelocity = 5;
+        setForwardVelocity = 6;
       }
       if (setForwardVelocity < .1) {
         setForwardVelocity = 0.1;
@@ -357,7 +360,7 @@ void intializeAngleVel(){
 
 void victoryScreech(){
   int song = millis() % 3;
-  int tempo[] = {350, 500, 500);
+  int tempo[] = {350, 500, 500};
   int lengths[] = {29, 35, 71};
   int qua = tempo[song];
   int hal = 2*qua;
@@ -365,7 +368,7 @@ void victoryScreech(){
   int eit = qua/2;
   int who = 4* qua;
 
-  int notes[][] = {{196,264, 330, 400, 524,660,785,660, 0, 0,
+  int notes[3][71] = {{196,264, 330, 400, 524,660,785,660, 0, 0,
           264,315,415,524,622,831,622, 0,0,
           293, 350, 466, 587, 698, 932, 932, 932, 932, 1046}, 
 
@@ -381,7 +384,7 @@ void victoryScreech(){
       587, 261, 440, 440, 349, 349, 349, 349, 349, 293, 261,
       349, 349, 349, 392, 440, 349, 392, 349}};
 
-  int durr[][] = {{ trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
+  int durr[3][71] = {{ trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
                     trip, trip, trip, trip, trip, qua, qua/2, qua/2, trip,
                     trip, trip, trip, trip, trip, qua,trip, trip ,trip , 3*qua},
 

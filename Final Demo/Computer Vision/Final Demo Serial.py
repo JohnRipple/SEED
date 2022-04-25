@@ -20,14 +20,14 @@ ser.reset_input_buffer()
 Name:      sendSecondary()
 Function:  Send data from the camera to the arduino and lcd
 '''
-def sendSecondary(angleH, inFrame, angle, stopSig):
+def sendSecondary(angleH, inFrame, angle, stopSig, rightTurn):
     signS = 0
     signH = 0
     if angle < 0:   
         signS = 1
     if angleH < 0:
         signH = 1
-    array = [round(abs(angleH)), signH, round(abs(angle)), signS, stopSig]
+    array = [round(abs(angleH)), signH, round(abs(angle)), signS, stopSig, rightTurn]
     s = " ".join(map(str, array)) + " \n"
     ser.write(s.encode('utf-8')) 
     line = ser.readline().decode('utf-8').rstrip()
@@ -89,6 +89,7 @@ cross = False
 lastCross = False
 stop = False
 cv.setUseOptimized(True)
+sizeRatio = 0
 phiOld = 0
 angleOld = 0
 data = np.load('camera_distort_matrices.npz') # Load the Previously found distorition matrix
@@ -142,7 +143,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     if len(contours) < 1:
         if found == True:
             print("No Markers Found")
-            sendSecondary(0, False, 0, 2)
+            sendSecondary(0, False, 0, 2,0)
     else:
         # Create bounding box for the largest contour found 
         largest_item = max(contours, key=cv.contourArea)
@@ -203,7 +204,7 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
             x = int(M['m10']/M['m00'])
             y = int(M['m01']/M['m00'])
         else:
-            sendSecondary(0, False, 0, 2)
+            sendSecondary(0, False, 0, 2, 0)
             
     if x == -1:
         found = False
@@ -212,10 +213,13 @@ for framein in camera.capture_continuous(rawCapture, format="bgr", use_video_por
     phi = findangle(x, frame.shape[1]/2)
     #print("Last cross: " + str(lastCross) + "\t Cross: " + str(cross))
     if lastCross is True and cross is False:
-        sendSecondary(0, found, 0, 1)
+        sendSecondary(0, found, 0, 1, 0)
         print("Cross")
     elif newValues is True:
-        sendSecondary(angleOld, found, phiOld, 0)
+        if sizeRatio < 3:
+            sendSecondary(angleOld, found, phiOld, 0, 1)
+        else:
+            sendSecondary(angleOld, found, phiOld, 0, 0)
     lastCross = cross
     newValues = False
     #cv.imshow("Frame", frame)
