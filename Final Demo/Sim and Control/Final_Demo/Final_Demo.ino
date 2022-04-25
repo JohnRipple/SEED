@@ -356,25 +356,49 @@ void intializeAngleVel(){
 }
 
 void victoryScreech(){
-  int qua = 500;
+  int song = millis() % 3;
+  int tempo[] = {350, 500, 500);
+  int lengths[] = {29, 35, 71};
+  int qua = tempo[song];
+  int hal = 2*qua;
   int trip = qua/3;
+  int eit = qua/2;
+  int who = 4* qua;
 
-//   int notes[] = {196,264, 330, 400, 524,660,785,660,   0, 0,
-//     264,315,415,524,622,831,622, 0,0,
-//     293, 350, 466, 587, 698, 932, 932, 932, 932, 1046};
-//   int durr[] = {trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
-//     trip, trip, trip, trip, trip, qua, qua/2, qua/2, trip,
-//     trip, trip, trip, trip, trip, qua,trip, trip ,trip , 3*qua};
-  int notes[] = {261, 350, 440, 350, 440, 392, 350, 293, 261, 261, 
-    350, 440, 350, 440, 392, 523, 440,
-    523, 440, 524, 440, 350, 261, 293, 350, 350, 293, 261, 261,
-    350, 440, 350, 440, 392, 350};
-  int durr[] = {qua, 2*qua, qua/2, qua/2, 2*qua, qua, 2*qua, qua, 2*qua, qua,
-    2*qua, qua/2, qua/2, 2*qua, qua, 5*qua, qua,
-    1.5*qua, qua/2, qua/2, qua/2, qua*2, qua, 1.5*qua, qua/2, qua/2, qua/2, 2*qua, qua,
-    2*qua, qua/2, qua/2, qua*2, qua, qua*5};
-  for(int i = 0; i < 35; i++){
-      tone(11, notes[i], durr[i]);
-      delay(durr[i]);
-    }
+  int notes[][] = {{196,264, 330, 400, 524,660,785,660, 0, 0,
+          264,315,415,524,622,831,622, 0,0,
+          293, 350, 466, 587, 698, 932, 932, 932, 932, 1046}, 
+
+      {261, 350, 440, 350, 440, 392, 350, 293, 261, 261, 
+          350, 440, 350, 440, 392, 523, 440,
+          523, 440, 524, 440, 350, 261, 293, 350, 350, 293, 261, 261,
+          350, 440, 350, 440, 392, 350},
+
+      {440, 349, 440, 349, 349, 293, 261, 349, 349, 349, 349, 440, 523, 523, 
+      523, 587, 523, 440, 523, 349, 349, 293, 261,
+      349, 349, 349, 392, 440, 349, 392, 349, 440, 587, 349, 293, 349, 349, 349,
+      349, 349, 349, 293, 261, 349, 349, 349, 349, 440, 659, 659, 659, 659,
+      587, 261, 440, 440, 349, 349, 349, 349, 349, 293, 261,
+      349, 349, 349, 392, 440, 349, 392, 349}};
+
+  int durr[][] = {{ trip,trip,trip,trip,trip,trip,qua,qua/2, qua/2, trip, 
+                    trip, trip, trip, trip, trip, qua, qua/2, qua/2, trip,
+                    trip, trip, trip, trip, trip, qua,trip, trip ,trip , 3*qua},
+
+                {   qua, hal, eit, eit, hal, qua, hal, qua, 2*qua, qua,
+                    2*qua, eit, eit, 2*qua, qua, 5*qua, qua,
+                    1.5*qua, eit, eit, eit, qua*2, qua, 1.5*qua, eit, eit, eit, 2*qua, qua,
+                    2*qua, eit, eit, qua*2, qua, qua*5},
+
+      {qua, hal, qua, 1.5*qua, eit, eit, 1.5*qua, eit, eit, eit, eit, eit, eit, qua,
+      who, eit, eit, hal, qua, 1.5*qua, eit, eit, eit + qua,
+      eit, eit, eit, eit, eit, eit, qua, hal + qua, qua, eit, qua, eit, qua, eit, eit,
+      eit, eit, qua, eit, qua + eit, eit, eit, eit, eit, eit, eit, qua, hal + qua, qua,
+      eit, eit, qua, qua, qua, eit, eit, eit, eit, eit, qua + eit, 
+      eit, eit, eit, eit, eit, eit, qua, who}};
+
+  for(int i = 0; i < lengths[song]; i++){
+        tone(11, notes[song][i], durr[song][i]);
+        delay(durr[song][i]);
+      }
 }
